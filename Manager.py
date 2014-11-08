@@ -36,7 +36,7 @@ def parseInputData(outline, instructions):
         numUnits    = int(matches[4])
 
         ins = Instruction(command, taskID, delay, resourceType, numUnits)
-        tasks[taskID].addInstruction( ins )
+        tasks[taskID].addInstruction(ins)
 
 def isFinished():
     for task in tasks.values():
@@ -81,12 +81,13 @@ def execute(manager, task, instruction):
 
 
     elif( instruction.getCommand() == "release" ):
-        print("release bruh")
         resource = resources[instruction.getResourceType()]
-        
 
-    elif( instruction.getCommand() == "terminate" ):
-        print("terminate !")
+        if( instruction.getNumUnits() <= resource.getNumBusy() ):
+            # The release can be fulfilled
+            if( resource.freeUnits(instruction.getNumUnits()) ):
+                task.releaseResource(resource.getID(), instruction.getNumUnits())
+                print("fulfilled release")
 
     task.incInstruction()
 
