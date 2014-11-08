@@ -44,6 +44,15 @@ def isFinished():
             return False
     return True
 
+def isDeadlocked():
+    '''
+    Deadlock if all tasks are waiting
+    '''
+    for task in tasks.values():
+        if not task.isWaiting():
+            return False
+    return True
+
 def optimisticRequest(task, instruction):
     '''
     Fulfills the request if there are available resources
@@ -57,14 +66,20 @@ def optimisticRequest(task, instruction):
             print("fulfilleddddd request")
 
     else:
-        # This is awkward... aka deadlock
-        # Free its resources and abort the task
-        heldResources = task.getAllResources()
-        for rID in heldResources.keys():
-            resources[rID].freeUnits(heldResources[rID])
+        # Check if there's deadlock
+        if( isDeadlocked() ):
+            # Abort the task (+ free its resources)
+            heldResources = task.getAllResources()
+            for rID in heldResources.keys():
+                resources[rID].freeUnits(heldResources[rID])
 
-        task.abort()
-        print("deadlock!")
+            task.abort()
+            print("deadlock!")
+
+        else:
+            # Just have to wait until resources become available
+            task.wait()
+
 
 
 def execute(manager, task, instruction):
@@ -76,8 +91,11 @@ def execute(manager, task, instruction):
         print("Banker cares about the claims")
 
     if( instruction.getCommand() == "request" ):
+        task.stopWaiting() # Assume it won't have to wait
+
         if( manager is ManagerType.OPTIMISTIC ):
             optimisticRequest(task, instruction)
+
 
 
     elif( instruction.getCommand() == "release" ):
@@ -89,7 +107,9 @@ def execute(manager, task, instruction):
                 task.releaseResource(resource.getID(), instruction.getNumUnits())
                 print("fulfilled release")
 
-    task.incInstruction()
+
+    if( not task.isWaiting() )
+        task.incInstruction()
 
 
 

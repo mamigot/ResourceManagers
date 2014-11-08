@@ -3,13 +3,17 @@ class Task:
     def __init__(self, id):
         self.id = id
         self.instructions = [ ]
+        self.currInstruction = 0 # Used to iterate through instructions
 
+        self.waiting = False
         self.finished = False
         self.aborted = False
-        self.currInstruction = 0 # Used to iterate through instructions
 
         self.heldResources = {} # Maps resource ID to count of units
 
+
+    def isWaiting(self):
+        return self.waiting
 
     def isFinished(self):
         return self.finished
@@ -17,6 +21,12 @@ class Task:
     def isAborted(self):
         return self.aborted
 
+    def wait(self):
+        self.waiting = True
+
+    def stopWaiting(self):
+        self.waiting = False
+        
     def abort(self):
         self.releaseAllResources()
         self.aborted = True
