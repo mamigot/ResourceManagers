@@ -11,6 +11,12 @@ resources = {} # Maps resource IDs to Resource objects
 
 sysClock = 0;
 
+class ManagerType:
+    '''
+    Mimic enums from Java
+    '''
+    OPTIMISTIC = 1
+    BANKER = 2
 
 def parseInputData(outline, instructions):
     global tasks, resources # Modify the global variables
@@ -38,18 +44,29 @@ def isFinished():
             return False
     return True
 
-def execute(task, instruction):
+def optimisticRequest(task, instruction):
+    print('using the optimistic resource manager')
+
+
+
+def execute(manager, task, instruction):
     if( instruction.delay ):
         instruction.delay -= 1; return
 
-    if( instruction.command == "initiate" ):
+    if( instruction.command == "initiate" and
+        manager is ManagerType.OPTIMISTIC ):
         print("initiate !!! yeh!")
 
     if( instruction.command == "request" ):
-        print("requestttttt")
+        if( manager is ManagerType.OPTIMISTIC ):
+            optimisticRequest(task, instruction)
 
     elif( instruction.command == "release" ):
         print("release bruh")
+
+
+    elif( instruction.command == "terminate" ):
+        print("terminate !")
 
     task.incInstruction()
 
@@ -59,10 +76,9 @@ def runManager():
     global sysClock
 
     while not isFinished():
-
         for task in tasks.values():
             ins = task.getCurrentInstruction()
-            execute(task, ins)
+            execute(ManagerType.OPTIMISTIC, task, ins)
 
         sysClock += 1
 
