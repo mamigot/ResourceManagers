@@ -13,7 +13,7 @@ sysClock = 0;
 
 class ManagerType:
     '''
-    Mimic enums from Java
+    Mimic enums
     '''
     OPTIMISTIC = 1
     BANKER = 2
@@ -40,32 +40,52 @@ def parseInputData(outline, instructions):
 
 def isFinished():
     for task in tasks.values():
-        if not task.isFinished():
+        if not task.isFinished() and not task.isAborted():
             return False
     return True
 
 def optimisticRequest(task, instruction):
-    print('using the optimistic resource manager')
+    '''
+    Fulfills the request if there are available resources
+    '''
+    resource = resources[instruction.getResourceType()]
 
+    if( instruction.getNumUnits() <= resource.getNumAvailable() ):
+        # The request can be fulfilled
+        if( resource.takeUnits(instruction.getNumUnits()) ):
+            task.grantResource(resource.getID(), instruction.getNumUnits())
+            print("fulfilleddddd request")
+
+    else:
+        # This is awkward... aka deadlock
+        # Free its resources and abort the task
+        heldResources = task.getAllResources()
+        for rID in heldResources.keys():
+            resources[rID].freeUnits(heldResources[rID])
+
+        task.abort()
+        print("deadlock!")
 
 
 def execute(manager, task, instruction):
-    if( instruction.delay ):
+    if( instruction.getDelay() ):
         instruction.delay -= 1; return
 
-    if( instruction.command == "initiate" and
-        manager is ManagerType.OPTIMISTIC ):
-        print("initiate !!! yeh!")
+    if( instruction.getCommand() == "initiate" and
+        manager is ManagerType.BANKER ):
+        print("Banker cares about the claims")
 
-    if( instruction.command == "request" ):
+    if( instruction.getCommand() == "request" ):
         if( manager is ManagerType.OPTIMISTIC ):
             optimisticRequest(task, instruction)
 
-    elif( instruction.command == "release" ):
+
+    elif( instruction.getCommand() == "release" ):
         print("release bruh")
+        resource = resources[instruction.getResourceType()]
+        
 
-
-    elif( instruction.command == "terminate" ):
+    elif( instruction.getCommand() == "terminate" ):
         print("terminate !")
 
     task.incInstruction()
@@ -77,15 +97,15 @@ def runManager():
 
     while not isFinished():
         for task in tasks.values():
-            ins = task.getCurrentInstruction()
-            execute(ManagerType.OPTIMISTIC, task, ins)
+            if not task.isAborted() and not task.isFinished():
+                ins = task.getCurrentInstruction()
+                execute(ManagerType.OPTIMISTIC, task, ins)
 
         sysClock += 1
 
 
-
 if __name__ == "__main__":
-    filePath = "inputs/input-01.txt"
+    filePath = "inputs/input-03.txt"
     file = file(filePath, 'r')
 
     outline = [int(s) for s in file.readline().split()]

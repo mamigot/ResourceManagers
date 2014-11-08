@@ -1,27 +1,35 @@
 class Resource:
 
-    def __init__(self, id, numUnits):
+    def __init__(self, id, totUnits):
         self.id = id
-        self.numUnits = numUnits
+        self.totUnits = totUnits
 
-        self.availableUnits = numUnits
+        self.availableUnits = totUnits
         self.busyUnits = 0
 
-    def takeUnit(self):
-        if( self.availableUnits > 0 )
-            self.availableUnits -= 1
-            self.busyUnits += 1
+    def takeUnits(self, numUnits=1):
+        if( numUnits <= self.availableUnits ):
+            self.availableUnits -= numUnits
+            self.busyUnits += numUnits
+            return True
 
-    def freeUnit(self):
-        if( self.availableUnits + 1 <= self.numUnits )
-            self.availableUnits += 1
-            self.busyUnits -= 1
+        else:
+            return False
+
+    def freeUnits(self, numUnits=1):
+        if( self.availableUnits + numUnits <= self.totUnits ):
+            self.availableUnits += numUnits
+            self.busyUnits -= numUnits
+            return True
+
+        else:
+            return False
 
     def getID(self):
         return self.id
 
-    def getNumUnits(self):
-        return self.numUnits
+    def getTotUnits(self):
+        return self.totUnits
 
     def getNumAvailable(self):
         return self.availableUnits

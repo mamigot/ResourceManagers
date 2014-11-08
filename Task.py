@@ -5,6 +5,7 @@ class Task:
         self.instructions = [ ]
 
         self.finished = False
+        self.aborted = False
         self.currInstruction = 0 # Used to iterate through instructions
 
         self.heldResources = {} # Maps resource ID to count of units
@@ -13,20 +14,30 @@ class Task:
     def isFinished(self):
         return self.finished
 
+    def isAborted(self):
+        return self.aborted
+
+    def abort(self):
+        self.releaseAllResources()
+        self.aborted = True
+
     def grantResource(self, resourceID, numUnits=1):
         '''
         Does not check if the resource actually has the units
         (that's the manager's job --this is just book-keeping)
         '''
-        if( resourceID in self.heldResources.keys() )
+        if( resourceID in self.heldResources.keys() ):
             # Already have at least one unit of this resource
             self.heldResources[resourceID] += numUnits
-        else
+        else:
             self.heldResources[resourceID] = numUnits
 
     def releaseResource(self, resourceID, numUnits=1):
-        if( resourceID in self.heldResources.keys() )
+        if( resourceID in self.heldResources.keys() ):
             self.heldResources[resourceID] -= numUnits
+
+    def releaseAllResources(self):
+        self.heldResources = {}
 
     def addInstruction(self, instruction):
         self.instructions.append( instruction )
@@ -48,6 +59,9 @@ class Task:
             self.finished = True; return
 
         return self.instructions[self.currInstruction]
+
+    def getAllResources(self):
+        return self.heldResources
 
     def __str__(self):
         return str(self.__dict__)
