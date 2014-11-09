@@ -60,6 +60,8 @@ def optimisticRequest(task, instruction):
     resource = resources[instruction.getResourceType()]
 
     if( instruction.getNumUnits() <= resource.getNumAvailable() ):
+        task.stopWaiting() # Freed from waiting when request can be satisfied
+
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
             task.grantResource(resource.getID(), instruction.getNumUnits())
@@ -69,6 +71,7 @@ def optimisticRequest(task, instruction):
         # Check if there's deadlock
         if( isDeadlocked() ):
             # Abort the task (+ free its resources)
+            # (resources shouldn't be available until the next cycle!)
             heldResources = task.getAllResources()
             for rID in heldResources.keys():
                 resources[rID].freeUnits(heldResources[rID])
@@ -77,8 +80,7 @@ def optimisticRequest(task, instruction):
             print("deadlock!")
 
         else:
-            # Just have to wait until resources become available
-            task.wait()
+            task.wait() # Wait until resources become available
 
 
 
@@ -91,11 +93,8 @@ def execute(manager, task, instruction):
         print("Banker cares about the claims")
 
     if( instruction.getCommand() == "request" ):
-        task.stopWaiting() # Assume it won't have to wait
-
         if( manager is ManagerType.OPTIMISTIC ):
             optimisticRequest(task, instruction)
-
 
 
     elif( instruction.getCommand() == "release" ):
@@ -108,7 +107,7 @@ def execute(manager, task, instruction):
                 print("fulfilled release")
 
 
-    if( not task.isWaiting() )
+    if( not task.isWaiting() ):
         task.incInstruction()
 
 
