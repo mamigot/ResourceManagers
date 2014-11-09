@@ -26,7 +26,7 @@ class Task:
 
     def stopWaiting(self):
         self.waiting = False
-        
+
     def abort(self):
         self.releaseAllResources()
         self.aborted = True

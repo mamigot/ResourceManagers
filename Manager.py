@@ -9,6 +9,8 @@ from Instruction import Instruction
 tasks = {} # Maps task IDs to Task objects
 resources = {} # Maps resource IDs to Resource objects
 
+freeBuffer = {} # Maps resource IDs to number of units that will be freed
+
 sysClock = 0;
 
 class ManagerType:
@@ -53,6 +55,21 @@ def isDeadlocked():
             return False
     return True
 
+def placeIntoFreeBuffer(resourceID, numUnits):
+    global freeBuffer
+
+    if( resourceID in freeBuffer.keys() ):
+        freeBuffer[resourceID] += numUnits
+    else:
+        freeBuffer[resourceID] = numUnits
+
+def cleanFreeBuffer():
+    global freeBuffer
+
+    for rID in freeBuffer.keys():
+        resources[rID].freeUnits(freeBuffer[rID])
+        del freeBuffer[rID]
+
 def optimisticRequest(task, instruction):
     '''
     Fulfills the request if there are available resources
@@ -68,19 +85,18 @@ def optimisticRequest(task, instruction):
             print("fulfilleddddd request")
 
     else:
+        task.wait() # Wait until resources become available
+
         # Check if there's deadlock
         if( isDeadlocked() ):
             # Abort the task (+ free its resources)
             # (resources shouldn't be available until the next cycle!)
             heldResources = task.getAllResources()
             for rID in heldResources.keys():
-                resources[rID].freeUnits(heldResources[rID])
+                placeIntoFreeBuffer(rID, heldResources[rID])
 
             task.abort()
             print("deadlock!")
-
-        else:
-            task.wait() # Wait until resources become available
 
 
 
@@ -92,19 +108,20 @@ def execute(manager, task, instruction):
         manager is ManagerType.BANKER ):
         print("Banker cares about the claims")
 
+    task.stopWaiting()
+
     if( instruction.getCommand() == "request" ):
         if( manager is ManagerType.OPTIMISTIC ):
             optimisticRequest(task, instruction)
-
 
     elif( instruction.getCommand() == "release" ):
         resource = resources[instruction.getResourceType()]
 
         if( instruction.getNumUnits() <= resource.getNumBusy() ):
             # The release can be fulfilled
-            if( resource.freeUnits(instruction.getNumUnits()) ):
-                task.releaseResource(resource.getID(), instruction.getNumUnits())
-                print("fulfilled release")
+            placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
+            task.releaseResource(resource.getID(), instruction.getNumUnits())
+            print("fulfilled release")
 
 
     if( not task.isWaiting() ):
@@ -121,6 +138,7 @@ def runManager():
                 ins = task.getCurrentInstruction()
                 execute(ManagerType.OPTIMISTIC, task, ins)
 
+        cleanFreeBuffer()
         sysClock += 1
 
 
