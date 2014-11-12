@@ -20,6 +20,7 @@ class ManagerType:
     OPTIMISTIC = 1
     BANKER = 2
 
+
 def parseInputData(outline, instructions):
     global tasks, resources # Modify the global variables
     tasks = {x:Task(x) for x in range(1, outline[0] + 1)}
@@ -40,11 +41,13 @@ def parseInputData(outline, instructions):
         ins = Instruction(command, taskID, delay, resourceType, numUnits)
         tasks[taskID].addInstruction(ins)
 
+
 def isFinished():
     for task in tasks.values():
         if( task.isActive() ):
             return False
     return True
+
 
 def isDeadlocked():
     '''
@@ -56,6 +59,7 @@ def isDeadlocked():
 
     return not isFinished() # If it's finished, it's not deadlocked
 
+
 def getLowestDeadlockedTask():
     '''
     Has to be active, obviously
@@ -63,20 +67,37 @@ def getLowestDeadlockedTask():
     for task in tasks.values():
         if( task.isWaiting() and task.isActive() ):
             return task
+
     return None
 
-def abortLowestDeadlockedTask():
+
+def resolveDeadlock():
     '''
     Abort the lowest numbered deadlocked task (+ free its resources)
+    (repeat this process while there's deadlock)
     '''
-    task = getLowestDeadlockedTask()
-    if not task: return
+    while( isDeadlocked() ):
+        task = getLowestDeadlockedTask()
+        if not task: return
 
-    heldResources = task.getAllResources()
-    for rID in heldResources.keys():
-        placeIntoFreeBuffer(rID, heldResources[rID])
-    task.abort()
-    print("aborted task " + str(task.getID()))
+        heldResources = task.getAllResources()
+        for rID in heldResources.keys():
+            placeIntoFreeBuffer(rID, heldResources[rID])
+        task.abort()
+        print("aborted task " + str(task.getID()))
+
+        cleanFreeBuffer()
+
+        for task in tasks.values():
+            if task.isActive():
+                ins = task.getCurrentInstruction()
+                if(ins.getCommand() == "request"):
+                    optimisticRequest(task, ins)
+                    if( not task.isWaiting() ):
+                        task.incInstruction()
+
+        #print('wooohoooo')
+
 
 def placeIntoFreeBuffer(resourceID, numUnits):
     global freeBuffer
@@ -86,6 +107,7 @@ def placeIntoFreeBuffer(resourceID, numUnits):
     else:
         freeBuffer[resourceID] = numUnits
 
+
 def cleanFreeBuffer():
     global freeBuffer
 
@@ -93,10 +115,14 @@ def cleanFreeBuffer():
         resources[rID].freeUnits(freeBuffer[rID])
         del freeBuffer[rID]
 
+
 def optimisticRequest(task, instruction):
     '''
     Fulfills the request if there are available resources
     '''
+    if( instruction.getDelay() ):
+        instruction.delay -= 1; return
+
     resource = resources[instruction.getResourceType()]
 
     if( instruction.getNumUnits() <= resource.getNumAvailable() ):
@@ -112,7 +138,7 @@ def optimisticRequest(task, instruction):
 
 
 def execute(manager, task, instruction):
-    if( instruction.getDelay() ):
+    if( instruction.getDelay() ): ### MIGHT HAVE PROBLEMS WHEN "TIME IS STOPPED"
         instruction.delay -= 1; return
 
     if( instruction.getCommand() == "initiate" and
@@ -148,20 +174,22 @@ def run(manager):
 
         # Check if there's deadlock (applies to optimistic manager)
         if( manager is ManagerType.OPTIMISTIC and isDeadlocked() ):
-            abortLowestDeadlockedTask()
-        else:
-            sysClock += 1
+            resolveDeadlock()
 
         cleanFreeBuffer()
+        sysClock += 1
+
+
 
 def printReport():
     for task in tasks.values():
         if task.isAborted():
-            print("aborted"); continue
+            print("aborted -- no stats"); continue
 
         print("Task #" + str(task.getID()) + "\n")
         print("\tRunning: " + str(task.getStats()['running']) + "\n")
         print("\tWaiting: " + str(task.getStats()['waiting']) + "\n")
+
 
 if __name__ == "__main__":
     filePath = "inputs/input-06.txt"
