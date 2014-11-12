@@ -11,6 +11,8 @@ class Task:
 
         self.heldResources = {} # Maps resource ID to count of units
 
+    def isActive(self):
+        return not (self.isFinished() or self.isAborted())
 
     def isWaiting(self):
         return self.waiting
@@ -29,6 +31,7 @@ class Task:
 
     def abort(self):
         self.releaseAllResources()
+        self.stopWaiting()
         self.aborted = True
 
     def grantResource(self, resourceID, numUnits=1):
@@ -65,13 +68,17 @@ class Task:
         return self.instructions
 
     def getCurrentInstruction(self):
-        if self.isFinished() or self.currInstruction >= len(self.instructions):
-            self.finished = True; return
+        if( not self.isActive() or
+            self.currInstruction >= len(self.instructions) ):
+            return None
 
         return self.instructions[self.currInstruction]
 
     def getAllResources(self):
         return self.heldResources
 
-    def __str__(self):
-        return str(self.__dict__)
+    def __repr__(self):
+        info = "Task #" + str(self.getID()) + ": \n"
+        info += "\tisActive(): " + str(self.isActive()) + "\n"
+        info += "\tisWaiting(): " + str(self.isWaiting()) + "\n"
+        return info
