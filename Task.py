@@ -9,7 +9,11 @@ class Task:
         self.finished = False
         self.aborted = False
 
-        self.heldResources = {} # Maps resource ID to count of units
+        # Maps resource ID to count of units
+        self.heldResources = {}
+
+        # Stats to measure runtime
+        self.stats = {'running':0, 'waiting':0}
 
     def isActive(self):
         return not (self.isFinished() or self.isAborted())
@@ -61,6 +65,12 @@ class Task:
         else:
             self.finished = True
 
+    def incWaitingTime(self):
+        self.stats['waiting'] += 1
+
+    def incRunningTime(self):
+        self.stats['running'] += 1
+
     def getID(self):
         return self.id
 
@@ -76,6 +86,9 @@ class Task:
 
     def getAllResources(self):
         return self.heldResources
+
+    def getStats(self):
+        return self.stats
 
     def __repr__(self):
         info = "Task #" + str(self.getID()) + ": \n"

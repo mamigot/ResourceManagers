@@ -105,7 +105,7 @@ def optimisticRequest(task, instruction):
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
             task.grantResource(resource.getID(), instruction.getNumUnits())
-            print("fulfilleddddd request")
+            #print("fulfilleddddd request")
 
     else:
         task.wait() # Wait until resources become available
@@ -129,10 +129,12 @@ def execute(manager, task, instruction):
             # The release can be fulfilled
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
-            print("fulfilled release")
+            #print("fulfilled release")
 
     if( not task.isWaiting() ):
         task.incInstruction()
+    else:
+        task.incWaitingTime() #### GETTING INCREMENTED EVEN WHEN "TIME IS STOPPED"
 
 
 def run(manager):
@@ -147,13 +149,22 @@ def run(manager):
         # Check if there's deadlock (applies to optimistic manager)
         if( manager is ManagerType.OPTIMISTIC and isDeadlocked() ):
             abortLowestDeadlockedTask()
-        else: sysClock += 1
+        else:
+            sysClock += 1
 
         cleanFreeBuffer()
 
+def printReport():
+    for task in tasks.values():
+        if task.isAborted():
+            print("aborted"); continue
+
+        print("Task #" + str(task.getID()) + "\n")
+        print("\tRunning: " + str(task.getStats()['running']) + "\n")
+        print("\tWaiting: " + str(task.getStats()['waiting']) + "\n")
 
 if __name__ == "__main__":
-    filePath = "inputs/input-05.txt"
+    filePath = "inputs/input-06.txt"
     file = file(filePath, 'r')
 
     outline = [int(s) for s in file.readline().split()]
@@ -162,4 +173,5 @@ if __name__ == "__main__":
     parseInputData(outline, instructions)
 
     run(ManagerType.OPTIMISTIC)
-    print(sysClock)
+
+    printReport()
