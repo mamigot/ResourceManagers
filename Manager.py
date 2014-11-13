@@ -133,6 +133,7 @@ def optimisticRequest(task, instruction):
         task.stopWaiting() # Freed from waiting when request can be satisfied
         if task.getID() in waitingTasks:
             del waitingTasks[task.getID()]
+            print("Task :" + str(task.getID()) + " left the waiting queue!")
 
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
@@ -140,10 +141,13 @@ def optimisticRequest(task, instruction):
             print("Task :" + str(task.getID()) + " fulfilled request")
 
     else:
-        print("Task :" + str(task.getID()) + " request cannot be granted")
+        print("Task :" + str(task.getID()) + " request cannot be granted!")
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks:
             waitingTasks[task.getID()] = task
+            print("\tWent into the queue!")
+
+
 
 
 def execute(manager, task, instruction):
