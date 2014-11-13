@@ -1,13 +1,16 @@
 import sys
 import re
+from collections import OrderedDict
 
 from Task import Task
 from Resource import Resource
 from Instruction import Instruction
 
 
-tasks = {} # Maps task IDs to Task objects
 resources = {} # Maps resource IDs to Resource objects
+tasks = {} # Maps task IDs to Task objects
+# Maps task IDs to tasks that are waiting (first has been waiting the longest)
+waitingTasks = OrderedDict()
 
 freeBuffer = {} # Maps resource IDs to number of units that will be freed
 
@@ -46,6 +49,7 @@ def isFinished():
     for task in tasks.values():
         if( task.isActive() ):
             return False
+
     return True
 
 
@@ -127,14 +131,19 @@ def optimisticRequest(task, instruction):
 
     if( instruction.getNumUnits() <= resource.getNumAvailable() ):
         task.stopWaiting() # Freed from waiting when request can be satisfied
+        if task.getID() in waitingTasks:
+            del waitingTasks[task.getID()]
 
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
             task.grantResource(resource.getID(), instruction.getNumUnits())
-            #print("fulfilleddddd request")
+            print("Task :" + str(task.getID()) + " fulfilled request")
 
     else:
+        print("Task :" + str(task.getID()) + " request cannot be granted")
         task.wait() # Wait until resources become available
+        if not task.getID() in waitingTasks:
+            waitingTasks[task.getID()] = task
 
 
 def execute(manager, task, instruction):
@@ -155,7 +164,7 @@ def execute(manager, task, instruction):
             # The release can be fulfilled
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
-            #print("fulfilled release")
+            print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
 
     if( not task.isWaiting() ):
         task.incInstruction()
@@ -167,8 +176,20 @@ def run(manager):
     global sysClock
 
     while not isFinished():
-        for task in tasks.values():
+        '''
+        IDENTIFIED PROBLEM --- FIX
+        assignment requires that blocked tasks be processed before the others
+        (see output-06-fifo-detailed)
+        '''
+        # Process blocked tasks in the order they were told to wait
+        for task in waitingTasks.values():
             if task.isActive():
+                ins = task.getCurrentInstruction()
+                execute(manager, task, ins)
+
+        # Process non-blocked tasks
+        for task in tasks.values():
+            if task.isActive() and not task.isWaiting():
                 ins = task.getCurrentInstruction()
                 execute(manager, task, ins)
 
