@@ -7,12 +7,17 @@ from Resource import Resource
 from Instruction import Instruction
 
 
-resources = {} # Maps resource IDs to Resource objects
-tasks = {} # Maps task IDs to Task objects
-# Maps task IDs to tasks that are waiting (first has been waiting the longest)
+# Maps all task IDs to all Task objects
+tasks = {}
+# Maps task IDs to waiting tasks (in order tasks were told to wait)
 waitingTasks = OrderedDict()
+# Tasks are placed here when they are freed from waiting
+readyTasks = [] # (makes sure tasks are only processed once per cycle)
 
-freeBuffer = {} # Maps resource IDs to number of units that will be freed
+# Maps resource IDs to Resource objects
+resources = {}
+# Maps resource IDs to number of units that will be freed
+freeBuffer = {}
 
 sysClock = 0;
 
@@ -87,6 +92,8 @@ def resolveDeadlock():
         heldResources = task.getAllResources()
         for rID in heldResources.keys():
             placeIntoFreeBuffer(rID, heldResources[rID])
+
+        del waitingTasks[task.getID()]
         task.abort()
         print("aborted task " + str(task.getID()))
 
@@ -99,8 +106,6 @@ def resolveDeadlock():
                     optimisticRequest(task, ins)
                     if( not task.isWaiting() ):
                         task.incInstruction()
-
-        #print('wooohoooo')
 
 
 def placeIntoFreeBuffer(resourceID, numUnits):
@@ -131,7 +136,9 @@ def optimisticRequest(task, instruction):
 
     if( instruction.getNumUnits() <= resource.getNumAvailable() ):
         task.stopWaiting() # Freed from waiting when request can be satisfied
-        if task.getID() in waitingTasks:
+        readyTasks.append(task) # Note that tasks were "readified" on this cycle
+
+        if task.getID() in waitingTasks: # Leave the waiting tasks
             del waitingTasks[task.getID()]
             print("Task :" + str(task.getID()) + " left the waiting queue!")
 
@@ -143,15 +150,13 @@ def optimisticRequest(task, instruction):
     else:
         print("Task :" + str(task.getID()) + " request cannot be granted!")
         task.wait() # Wait until resources become available
-        if not task.getID() in waitingTasks:
+        if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
             print("\tWent into the queue!")
 
 
-
-
 def execute(manager, task, instruction):
-    if( instruction.getDelay() ): ### MIGHT HAVE PROBLEMS WHEN "TIME IS STOPPED"
+    if( instruction.getDelay() ):
         instruction.delay -= 1; return
 
     if( instruction.getCommand() == "initiate" and
@@ -165,7 +170,7 @@ def execute(manager, task, instruction):
     elif( instruction.getCommand() == "release" ):
         resource = resources[instruction.getResourceType()]
         if( instruction.getNumUnits() <= resource.getNumBusy() ):
-            # The release can be fulfilled
+            # Fulfill the release (place items into freeBuffer)
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
             print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
@@ -173,29 +178,30 @@ def execute(manager, task, instruction):
     if( not task.isWaiting() ):
         task.incInstruction()
     else:
-        task.incWaitingTime() #### GETTING INCREMENTED EVEN WHEN "TIME IS STOPPED"
+        task.incWaitingTime()
 
 
 def run(manager):
     global sysClock
 
     while not isFinished():
-        '''
-        IDENTIFIED PROBLEM --- FIX
-        assignment requires that blocked tasks be processed before the others
-        (see output-06-fifo-detailed)
-        '''
+        global readyTasks
+
         # Process blocked tasks in the order they were told to wait
         for task in waitingTasks.values():
-            if task.isActive():
+            if task.isActive(): # Should be all
                 ins = task.getCurrentInstruction()
                 execute(manager, task, ins)
 
         # Process non-blocked tasks
         for task in tasks.values():
-            if task.isActive() and not task.isWaiting():
+            if( task.isActive() and not task.isWaiting()
+                and not task in readyTasks ):
                 ins = task.getCurrentInstruction()
                 execute(manager, task, ins)
+
+        # Reset ready tasks
+        readyTasks = []
 
         # Check if there's deadlock (applies to optimistic manager)
         if( manager is ManagerType.OPTIMISTIC and isDeadlocked() ):
@@ -203,7 +209,6 @@ def run(manager):
 
         cleanFreeBuffer()
         sysClock += 1
-
 
 
 def printReport():
@@ -217,7 +222,7 @@ def printReport():
 
 
 if __name__ == "__main__":
-    filePath = "inputs/input-06.txt"
+    filePath = "inputs/input-13.txt"
     file = file(filePath, 'r')
 
     outline = [int(s) for s in file.readline().split()]
