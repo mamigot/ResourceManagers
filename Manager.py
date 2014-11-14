@@ -12,7 +12,8 @@ tasks = {}
 # Maps task IDs to waiting tasks (in order tasks were told to wait)
 waitingTasks = OrderedDict()
 # Tasks are placed here when they are freed from waiting
-readyTasks = [] # (makes sure tasks are only processed once per cycle)
+# (makes sure tasks are only processed once per cycle)
+readyTasks = []
 
 # Maps resource IDs to Resource objects
 resources = {}
@@ -154,25 +155,50 @@ def optimisticRequest(task, instruction):
             #print("\tWent into the queue!")
 
 
+def bankerRequest(task, instruction):
+    pass
+
+
+def bankerProcessClaims(task, initInstruction):
+    '''
+    Aborts task if it's asking for unknown resources or way too many units
+    '''
+    rType = initInstruction.getResourceType()
+    rUnits = initInstruction.getNumUnits()
+
+    if( not rType in resources.keys()
+        or rUnits > resources[rType].getTotUnits() ):
+        task.abort()
+        print("task aborted in the beginning... asked for too much")
+    else:
+        task.setClaims(rType, rUnits)
+
+
 def execute(manager, task, instruction):
     if( instruction.getDelay() ):
         instruction.delay -= 1; return
 
     if( instruction.getCommand() == "initiate" and
         manager is ManagerType.BANKER ):
-        print("Banker cares about the claims")
+        bankerProcessClaims(task, instruction)
 
     if( instruction.getCommand() == "request" ):
         if( manager is ManagerType.OPTIMISTIC ):
             optimisticRequest(task, instruction)
 
+        elif( manager is ManagerType.BANKER ):
+            bankerRequest(task, instruction)
+
+
     elif( instruction.getCommand() == "release" ):
         resource = resources[instruction.getResourceType()]
+
         if( instruction.getNumUnits() <= resource.getNumBusy() ):
             # Fulfill the release (place items into freeBuffer)
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
             #print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
+
 
     if( not task.isWaiting() ):
         task.incInstruction()
@@ -229,7 +255,8 @@ if __name__ == "__main__":
     instructions = re.findall(r'[a-z]+\s+[\d\s]+', file.read())
 
     parseInputData(outline, instructions)
+    print(str(resources))
 
-    run(ManagerType.OPTIMISTIC)
+    run(ManagerType.BANKER)
 
     printReport()
