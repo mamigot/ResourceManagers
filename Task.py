@@ -68,8 +68,8 @@ class Task:
     def incWaitingTime(self):
         self.stats['waiting'] += 1
 
-    def incRunningTime(self):
-        self.stats['running'] += 1
+    def clockEndTime(self, time):
+        self.stats['running'] = time 
 
     def getID(self):
         return self.id

@@ -95,7 +95,6 @@ def resolveDeadlock():
 
         del waitingTasks[task.getID()]
         task.abort()
-        print("aborted task " + str(task.getID()))
 
         cleanFreeBuffer()
 
@@ -140,19 +139,19 @@ def optimisticRequest(task, instruction):
 
         if task.getID() in waitingTasks: # Leave the waiting tasks
             del waitingTasks[task.getID()]
-            print("Task :" + str(task.getID()) + " left the waiting queue!")
+            #print("Task :" + str(task.getID()) + " left the waiting queue!")
 
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
             task.grantResource(resource.getID(), instruction.getNumUnits())
-            print("Task :" + str(task.getID()) + " fulfilled request")
+            #print( "Task :" + str(task.getID()) + " fulfilled request")
 
     else:
-        print("Task :" + str(task.getID()) + " request cannot be granted!")
+        #print("Task :" + str(task.getID()) + " request cannot be granted!")
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
-            print("\tWent into the queue!")
+            #print("\tWent into the queue!")
 
 
 def execute(manager, task, instruction):
@@ -173,10 +172,12 @@ def execute(manager, task, instruction):
             # Fulfill the release (place items into freeBuffer)
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
-            print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
+            #print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
 
     if( not task.isWaiting() ):
         task.incInstruction()
+        if task.isFinished():
+            task.clockEndTime(sysClock)
     else:
         task.incWaitingTime()
 
@@ -200,8 +201,7 @@ def run(manager):
                 ins = task.getCurrentInstruction()
                 execute(manager, task, ins)
 
-        # Reset ready tasks
-        readyTasks = []
+        readyTasks = [] # Reset ready tasks
 
         # Check if there's deadlock (applies to optimistic manager)
         if( manager is ManagerType.OPTIMISTIC and isDeadlocked() ):
