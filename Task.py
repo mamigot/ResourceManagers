@@ -44,10 +44,6 @@ class Task:
         self.aborted = True
 
 
-    def setClaims(self, resourceID, numUnits):
-        self.claims[resourceID] = numUnits
-
-
     def addInstruction(self, instruction):
         self.instructions.append( instruction )
 
@@ -62,6 +58,19 @@ class Task:
 
     def clockEndTime(self, time):
         self.stats['running'] = time
+
+
+    def setClaims(self, resourceID, numUnits):
+        self.claims[resourceID] = numUnits
+
+    def getMaxAddlRequest(self, resourceID):
+        '''
+        Gets maximum additional units for a given resource
+        '''
+        if resourceID in heldResources.keys():
+            return self.claims[resourceID] - self.heldResources[resourceID]
+        else:
+            return self.claims[resourceID]
 
 
     def grantResource(self, resourceID, numUnits=1):

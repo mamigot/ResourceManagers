@@ -70,6 +70,14 @@ def isDeadlocked():
     return not isFinished() # If it's finished, it's not deadlocked
 
 
+def isSafe(task, instruction):
+    '''
+    Determines if a given task + instruction leads to a safe state
+    (required by the Banker's Algorithm)
+    '''
+    return True
+
+
 def getLowestDeadlockedTask():
     '''
     Has to be active, obviously
@@ -125,7 +133,7 @@ def cleanFreeBuffer():
         del freeBuffer[rID]
 
 
-def optimisticRequest(task, instruction):
+def standardRequest(task, instruction):
     '''
     Fulfills the request if there are available resources
     '''
@@ -156,7 +164,16 @@ def optimisticRequest(task, instruction):
 
 
 def bankerRequest(task, instruction):
-    pass
+    '''
+    Wrapper around standardRequest() that proceeds only if the state is safe
+    '''
+    if( isSafe(task, instruction) ):
+        # Guaranteed that it won't have to wait
+        standardRequest(task, instruction)
+    else:
+        task.wait() # Wait until resources become available
+        if not task.getID() in waitingTasks: # Enter the waiting tasks
+            waitingTasks[task.getID()] = task
 
 
 def bankerProcessClaims(task, initInstruction):
@@ -184,7 +201,7 @@ def execute(manager, task, instruction):
 
     if( instruction.getCommand() == "request" ):
         if( manager is ManagerType.OPTIMISTIC ):
-            optimisticRequest(task, instruction)
+            standardRequest(task, instruction)
 
         elif( manager is ManagerType.BANKER ):
             bankerRequest(task, instruction)
@@ -193,13 +210,13 @@ def execute(manager, task, instruction):
     elif( instruction.getCommand() == "release" ):
         resource = resources[instruction.getResourceType()]
 
+        # Fulfill the release (place items into freeBuffer)
         if( instruction.getNumUnits() <= resource.getNumBusy() ):
-            # Fulfill the release (place items into freeBuffer)
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
             #print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
 
-
+    # Carry on and determine stats
     if( not task.isWaiting() ):
         task.incInstruction()
         if task.isFinished():
