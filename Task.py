@@ -73,7 +73,11 @@ class Task:
             else:
                 return self.claims[resourceID]
         else:
-            return self.claims
+            maxLeft = {rID:numUnits for rID, numUnits in self.claims.iteritems()}
+            for rID in maxLeft.keys():
+                if rID in self.heldResources.keys():
+                    maxLeft[rID] -= self.heldResources[rID]
+            return maxLeft
 
 
     def grantResource(self, resourceID, numUnits=1):
