@@ -84,17 +84,44 @@ def isSafe(task, instruction):
     if isFinished(): return True
 
     # Map resource ID to number of available units
-    simResources = {ID:r.getNumAvailable() for ID, r in d.iteritems()}
+    simResources = {ID:r.getNumAvailable() for ID, r in resources.iteritems()}
 
     # List of active tasks (one processed and popped per iteration)
-    simTasks = [isActive(task) for task in tasks.values()]
+    simTasks = []
+    for task in tasks.values():
+        if task.isActive(): simTasks.append(task)
 
     # Look for tasks whose max. requests are less than what remains
-    for task in simTasks:
-        maxAddl = task.getMaxAddl()
-        
+    while simTasks:
+        task = getFulfillableTask(simResources, simTasks)
+        if task:
+            currResources = task.getMaxAddl()
+            for rID in currResources.keys(): # "Banker" gets "richer"
+                simResources[rID] += currResources[rID]
+            simTasks.remove(task)
+
+        else:
+            return False # No tasks fit the criteria... therefore not safe
 
     return True
+
+
+def getFulfillableTask(maxResources, tasks):
+    '''
+    Returns a task from the list whose resource requests fall below maxResources
+    '''
+    for task in tasks:
+        currResources = task.getMaxAddl() # Maps resource ID to count of units
+
+        for rID in currResources.keys():
+            if currResources[rID] > maxResources[rID]:
+                break
+
+        # (magic: http://psung.blogspot.com.au/2007/12/for-else-in-python.html)
+        # (previous for loop executes normally, therefore this task is viable)
+        else: return task
+
+    return None
 
 
 def getLowestDeadlockedTask():
@@ -284,7 +311,7 @@ def printReport():
 
 
 if __name__ == "__main__":
-    filePath = "inputs/input-13.txt"
+    filePath = "inputs/input-02.txt"
     file = file(filePath, 'r')
 
     outline = [int(s) for s in file.readline().split()]
