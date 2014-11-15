@@ -70,7 +70,7 @@ def isDeadlocked():
     return not isFinished() # If it's finished, it's not deadlocked
 
 
-def isSafe(task, instruction):
+def isSafe(task, instruction): #task isnt needed here
     '''
     Determines if a given task + instruction leads to a safe state.
 
@@ -81,26 +81,38 @@ def isSafe(task, instruction):
             -   Else: pretend to grant all resources to it, terminate it and
                 continue to apply this method until all tasks are processed
     '''
-    if isFinished(): return True
+    if isFinished():
+        return True
+    if resources[instruction.getResourceType()].getNumAvailable() < instruction.getNumUnits():
+        print("not enough!\ttask asks for: " + str(instruction.getNumUnits()))
+        print("\t\tthere is just: " + str(resources[instruction.getResourceType()]))
+        return False
 
     # Map resource ID to number of available units
-    simResources = {ID:r.getNumAvailable() for ID, r in resources.iteritems()}
+    simResources = {rID:r.getNumAvailable() for rID, r in resources.iteritems()}
 
-    # List of active tasks (one processed and popped per iteration)
-    simTasks = []
-    for task in tasks.values():
-        if task.isActive(): simTasks.append(task)
+    # Active tasks (one processed and popped per iteration)
+    simTasks = {}
+    for t in tasks.values():
+        if t.isActive(): simTasks[t.getID()] = t
+
+    # Pretend current request is granted
+    insType = instruction.getResourceType()
+    insUnits = instruction.getNumUnits()
+    simResources[insType] -= insUnits
+    simTasks[task.getID()].grantResource(insType, insUnits)
 
     # Look for tasks whose max. requests are less than what remains
     while simTasks:
-        task = getFulfillableTask(simResources, simTasks)
+        task = getFulfillableTask(simResources, simTasks.values())
         if task:
             currResources = task.getMaxAddl()
             for rID in currResources.keys(): # "Banker" gets "richer"
                 simResources[rID] += currResources[rID]
-            simTasks.remove(task)
+            del simTasks[task.getID()]
 
         else:
+            print("welll well welll")
             return False # No tasks fit the criteria... therefore not safe
 
     return True
@@ -111,15 +123,16 @@ def getFulfillableTask(maxResources, tasks):
     Returns a task from the list whose resource requests fall below maxResources
     '''
     for task in tasks:
+        isValid = True
         currResources = task.getMaxAddl() # Maps resource ID to count of units
 
         for rID in currResources.keys():
             if currResources[rID] > maxResources[rID]:
-                break
+                isValid = False; break
 
-        # (magic: http://psung.blogspot.com.au/2007/12/for-else-in-python.html)
-        # (previous for loop executes normally, therefore this task is viable)
-        else: return task
+        if isValid:
+            print("yyeeee tsskz")
+            return task
 
     return None
 
@@ -157,7 +170,7 @@ def resolveDeadlock():
             if task.isActive():
                 ins = task.getCurrentInstruction()
                 if(ins.getCommand() == "request"):
-                    optimisticRequest(task, ins)
+                    standardRequest(task, ins)
                     if( not task.isWaiting() ):
                         task.incInstruction()
 
@@ -194,19 +207,19 @@ def standardRequest(task, instruction):
 
         if task.getID() in waitingTasks: # Leave the waiting tasks
             del waitingTasks[task.getID()]
-            #print("Task :" + str(task.getID()) + " left the waiting queue!")
+            print("Task :" + str(task.getID()) + " left the waiting queue!")
 
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
             task.grantResource(resource.getID(), instruction.getNumUnits())
-            #print( "Task :" + str(task.getID()) + " fulfilled request")
+            print( "Task :" + str(task.getID()) + " fulfilled request")
 
     else:
-        #print("Task :" + str(task.getID()) + " request cannot be granted!")
+        print("Task :" + str(task.getID()) + " request cannot be granted!")
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
-            #print("\tWent into the queue!")
+            print("\tWent into the queue!")
 
 
 def bankerRequest(task, instruction):
@@ -215,8 +228,10 @@ def bankerRequest(task, instruction):
     '''
     if isSafe(task, instruction):
         # Guaranteed that it won't have to wait
+        #print("Task :" + str(task.getID()) + " was told 'it\'s safe'")
         standardRequest(task, instruction)
     else:
+        print("Not safe! Task :" + str(task.getID()) + " was told to wait")
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
@@ -238,6 +253,7 @@ def bankerProcessClaims(task, initInstruction):
 
 
 def execute(manager, task, instruction):
+    print("\t\tinstruction= " + str(instruction.getCommand()))
     if( instruction.getDelay() ):
         instruction.delay -= 1; return
 
@@ -255,12 +271,12 @@ def execute(manager, task, instruction):
 
     elif( instruction.getCommand() == "release" ):
         resource = resources[instruction.getResourceType()]
-
         # Fulfill the release (place items into freeBuffer)
         if( instruction.getNumUnits() <= resource.getNumBusy() ):
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
-            #print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
+            print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
+
 
     # Carry on and determine stats
     if( not task.isWaiting() ):
@@ -299,6 +315,9 @@ def run(manager):
         cleanFreeBuffer()
         sysClock += 1
 
+        if(sysClock == 5):
+            return
+
 
 def printReport():
     for task in tasks.values():
@@ -318,7 +337,6 @@ if __name__ == "__main__":
     instructions = re.findall(r'[a-z]+\s+[\d\s]+', file.read())
 
     parseInputData(outline, instructions)
-    print(str(resources))
 
     run(ManagerType.BANKER)
 

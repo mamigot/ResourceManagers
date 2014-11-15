@@ -7,6 +7,7 @@ class Resource:
         self.availableUnits = totUnits
         self.busyUnits = 0
 
+
     def takeUnits(self, numUnits=1):
         if( numUnits <= self.availableUnits ):
             self.availableUnits -= numUnits
@@ -24,6 +25,7 @@ class Resource:
 
         else:
             return False
+
 
     def getID(self):
         return self.id
