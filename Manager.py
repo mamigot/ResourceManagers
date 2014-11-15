@@ -72,9 +72,28 @@ def isDeadlocked():
 
 def isSafe(task, instruction):
     '''
-    Determines if a given task + instruction leads to a safe state
-    (required by the Banker's Algorithm)
+    Determines if a given task + instruction leads to a safe state.
+
+    Dijkstra's algorithm to determine if a state is safe:
+        1. State is safe if no tasks are left
+        2. Look for task whose requests for all resources can be fulfilled
+            -   If none exist, state is not safe
+            -   Else: pretend to grant all resources to it, terminate it and
+                continue to apply this method until all tasks are processed
     '''
+    if isFinished(): return True
+
+    # Map resource ID to number of available units
+    simResources = {ID:r.getNumAvailable() for ID, r in d.iteritems()}
+
+    # List of active tasks (one processed and popped per iteration)
+    simTasks = [isActive(task) for task in tasks.values()]
+
+    # Look for tasks whose max. requests are less than what remains
+    for task in simTasks:
+        maxAddl = task.getMaxAddl()
+        
+
     return True
 
 
@@ -167,7 +186,7 @@ def bankerRequest(task, instruction):
     '''
     Wrapper around standardRequest() that proceeds only if the state is safe
     '''
-    if( isSafe(task, instruction) ):
+    if isSafe(task, instruction):
         # Guaranteed that it won't have to wait
         standardRequest(task, instruction)
     else:

@@ -63,14 +63,17 @@ class Task:
     def setClaims(self, resourceID, numUnits):
         self.claims[resourceID] = numUnits
 
-    def getMaxAddlRequest(self, resourceID):
+    def getMaxAddl(self, resourceID=None):
         '''
-        Gets maximum additional units for a given resource
+        Gets maximum additional units for a resource, or all if not specified
         '''
-        if resourceID in heldResources.keys():
-            return self.claims[resourceID] - self.heldResources[resourceID]
+        if resourceID:
+            if resourceID in heldResources.keys():
+                return self.claims[resourceID] - self.heldResources[resourceID]
+            else:
+                return self.claims[resourceID]
         else:
-            return self.claims[resourceID]
+            return self.claims
 
 
     def grantResource(self, resourceID, numUnits=1):
