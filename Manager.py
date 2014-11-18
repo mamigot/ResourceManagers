@@ -117,14 +117,8 @@ def isSafe(task, instruction): #task isnt needed here
         availTask = getFulfillableTask(simResources, simTasks)
 
         if availTask: # Free its resources and delete it
-            for rID, units in availTask.getMaxAddl().items():
+            for rID, units in availTask.getAllResources().items():
                 simResources[rID] += units
-
-            if availTask.getID() == 1:
-                print("i'm task 1!!!")
-                if simTasks[2].isWaiting():
-                    print("task 2 is next in the check... otherwise we'd be done")
-
             del simTasks[availTask.getID()]
         else:
             return False
@@ -336,8 +330,7 @@ def run(manager):
         cleanFreeBuffer()
         sysClock += 1
 
-        if(sysClock > 3):
-            exit(1)
+
 
 
 def printReport():
@@ -351,7 +344,7 @@ def printReport():
 
 
 if __name__ == "__main__":
-    filePath = "inputs/input-02.txt"
+    filePath = "inputs/input-07.txt" # 07 doesn't work
     file = file(filePath, 'r')
 
     outline = [int(s) for s in file.readline().split()]
