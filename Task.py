@@ -126,4 +126,5 @@ class Task:
         info = "Task #" + str(self.getID()) + ": \n"
         info += "\tisActive(): " + str(self.isActive()) + "\n"
         info += "\tisWaiting(): " + str(self.isWaiting()) + "\n"
+        info += str(self.heldResources)
         return info

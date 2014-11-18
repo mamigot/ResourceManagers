@@ -1,5 +1,6 @@
 import sys
 import re
+import copy
 from collections import OrderedDict
 
 from Task import Task
@@ -85,53 +86,69 @@ def isSafe(task, instruction): #task isnt needed here
         return True
     if resources[instruction.getResourceType()].getNumAvailable() < instruction.getNumUnits():
         print("not enough!\ttask asks for: " + str(instruction.getNumUnits()))
-        print("\t\tthere is just: " + str(resources[instruction.getResourceType()]))
+        print("\t\tthere is just: " + str(resources[instruction.getResourceType()].getNumAvailable()))
         return False
 
-    # Map resource ID to number of available units
+    # Map resource ID to number of available units (copied structure)
     simResources = {rID:r.getNumAvailable() for rID, r in resources.iteritems()}
-
-    # Active tasks (one processed and popped per iteration)
+    # Map task ID to task object
     simTasks = {}
-    for t in tasks.values():
-        if t.isActive(): simTasks[t.getID()] = t
+    for tID, t in tasks.iteritems():
+        if t.isActive():
+            simTasks[tID] = copy.deepcopy(t) # Copies full object
 
-    # Pretend current request is granted
-    insType = instruction.getResourceType()
-    insUnits = instruction.getNumUnits()
-    simResources[insType] -= insUnits
-    simTasks[task.getID()].grantResource(insType, insUnits)
+    # Pretend to grant the request
+    wResourceID = instruction.getResourceType()
+    wUnits = instruction.getNumUnits()
+    simResources[wResourceID] -= wUnits
 
-    # Look for tasks whose max. requests are less than what remains
-    while simTasks:
-        task = getFulfillableTask(simResources, simTasks.values())
-        if task:
-            currResources = task.getMaxAddl()
-            for rID in currResources.keys(): # "Banker" gets "richer"
-                simResources[rID] += currResources[rID]
-            del simTasks[task.getID()]
+    #print("hello")
+    #print("held: " + str(simTasks[task.getID()].getAllResources()))
+    #print("max addl: " + str(simTasks[task.getID()].getMaxAddl()))
 
+    simTasks[task.getID()].grantResource(wResourceID, wUnits)
+    #print("")
+
+    #print("held: " + str(simTasks[task.getID()].getAllResources()))
+    #print("max addl: " + str(simTasks[task.getID()].getMaxAddl()))
+    #print("bye")
+
+    while simTasks: # There should be tasks available
+        availTask = getFulfillableTask(simResources, simTasks)
+
+        if availTask: # Free its resources and delete it
+            for rID, units in availTask.getMaxAddl().items():
+                simResources[rID] += units
+
+            if availTask.getID() == 1:
+                print("i'm task 1!!!")
+                if simTasks[2].isWaiting():
+                    print("task 2 is next in the check... otherwise we'd be done")
+
+            del simTasks[availTask.getID()]
         else:
-            print("welll well welll")
-            return False # No tasks fit the criteria... therefore not safe
+            return False
+
 
     return True
 
 
 def getFulfillableTask(maxResources, tasks):
     '''
-    Returns a task from the list whose resource requests fall below maxResources
+    Returns a task whose max. additional request fits within the max. resources
     '''
-    for task in tasks:
+    for task in tasks.values():
+        #print("held: " + str(tasks[task.getID()].getAllResources()))
+        #print("max addl: " + str(tasks[task.getID()].getMaxAddl()))
+        resourceSet = task.getMaxAddl() # Maps resource ID to count of units
         isValid = True
-        currResources = task.getMaxAddl() # Maps resource ID to count of units
 
-        for rID in currResources.keys():
-            if currResources[rID] > maxResources[rID]:
+        for rID in resourceSet.keys():
+            if resourceSet[rID] > maxResources[rID]:
+                #print("asking for " + str(resourceSet[rID]) + " while there's only " + str(maxResources[rID]))
                 isValid = False; break
 
         if isValid:
-            print("yyeeee tsskz")
             return task
 
     return None
@@ -226,12 +243,16 @@ def bankerRequest(task, instruction):
     '''
     Wrapper around standardRequest() that proceeds only if the state is safe
     '''
+    print("c: " + str(sysClock))
     if isSafe(task, instruction):
-        # Guaranteed that it won't have to wait
-        #print("Task :" + str(task.getID()) + " was told 'it\'s safe'")
         standardRequest(task, instruction)
+
     else:
-        print("Not safe! Task :" + str(task.getID()) + " was told to wait")
+        print("\tNot safe! Task: " + str(task.getID()) + " was told to wait... was asking for these units: " + str(instruction.getNumUnits()))
+        print("\tinstruction: " + str(instruction.getCommand()))
+        print("\tbank: " + str(resources))
+        print("\n")
+
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
@@ -253,7 +274,7 @@ def bankerProcessClaims(task, initInstruction):
 
 
 def execute(manager, task, instruction):
-    print("\t\tinstruction= " + str(instruction.getCommand()))
+    #print("\t\tinstruction= " + str(instruction.getCommand()))
     if( instruction.getDelay() ):
         instruction.delay -= 1; return
 
@@ -315,8 +336,8 @@ def run(manager):
         cleanFreeBuffer()
         sysClock += 1
 
-        if(sysClock == 5):
-            return
+        if(sysClock > 3):
+            exit(1)
 
 
 def printReport():

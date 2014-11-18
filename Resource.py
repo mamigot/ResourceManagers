@@ -40,4 +40,4 @@ class Resource:
         return self.busyUnits
 
     def __repr__(self):
-        return str(self.__dict__)
+        return str(str(self.getNumAvailable()) + " available units")
