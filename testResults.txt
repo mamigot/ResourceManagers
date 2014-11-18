@@ -1,0 +1,114 @@
+[H[2JCURRENTLY TESTING input-01.txt
+
+			FIFO						BANKER's
+	Task 1		3	0	0%		Task 1		3	0	0%		
+	Task 2		3	0	0%		Task 2		5	2	40%		
+	total		6	0	0%		total		8	2	25%		
+
+------------------------------
+CURRENTLY TESTING input-02.txt
+
+			FIFO						BANKER's
+	Task 1		aborted				Task 1		4	0	0%		
+	Task 2		5	1	20%		Task 2		7	3	43%		
+	total		5	1	20%		total		11	3	27%		
+
+------------------------------
+CURRENTLY TESTING input-03.txt
+
+			FIFO						BANKER's
+	Task 1		aborted				Task 1		4	0	0%		
+	Task 2		aborted				Task 2		7	3	43%		
+	Task 3		5	1	20%		Task 3		10	6	60%		
+	total		5	1	20%		total		21	9	43%		
+
+------------------------------
+CURRENTLY TESTING input-04.txt
+
+			FIFO						BANKER's
+	Task 1		aborted				Task 1		9	3	33%		
+	Task 2		5	1	20%		Task 2		7	3	43%		
+	total		5	1	20%		total		16	6	38%		
+
+------------------------------
+CURRENTLY TESTING input-05.txt
+
+			FIFO						BANKER's
+	Task 1		9	4	44%		Task 1		9	4	44%		
+	Task 2		5	1	20%		Task 2		4	0	0%		
+	Task 3		7	3	43%		Task 3		7	3	43%		
+	total		21	8	38%		total		20	7	35%		
+
+------------------------------
+CURRENTLY TESTING input-06.txt
+Banker aborts task 3 before run begins:
+	claim for resource 1 (5) exceeds number of units present (4)
+
+			FIFO						BANKER's
+	Task 1		aborted				Task 1		9	4	44%		
+	Task 2		5	1	20%		Task 2		4	0	0%		
+	Task 3		aborted				Task 3		aborted				
+	Task 4		9	5	56%		Task 4		7	3	43%		
+	total		14	6	43%		total		20	7	35%		
+
+------------------------------
+CURRENTLY TESTING input-07.txt
+During cycle 3-4 of Banker's algorithm
+	Task 2's request exceeds its claim; aborted; 2 units available next cycle
+
+			FIFO						BANKER's
+	Task 1		aborted				Task 1		9	4	44%		
+	Task 2		aborted				Task 2		aborted				
+	Task 3		7	3	43%		Task 3		7	3	43%		
+	total		7	3	43%		total		16	7	44%		
+
+------------------------------
+CURRENTLY TESTING input-08.txt
+
+			FIFO						BANKER's
+	Task 1		3	0	0%		Task 1		3	0	0%		
+	Task 2		3	0	0%		Task 2		5	2	40%		
+	total		6	0	0%		total		8	2	25%		
+
+------------------------------
+CURRENTLY TESTING input-09.txt
+
+			FIFO						BANKER's
+	Task 1		6	0	0%		Task 1		6	0	0%		
+	Task 2		6	0	0%		Task 2		10	4	40%		
+	total		12	0	0%		total		16	4	25%		
+
+------------------------------
+CURRENTLY TESTING input-10.txt
+
+			FIFO						BANKER's
+	Task 1		aborted				Task 1		7	0	0%		
+	Task 2		8	1	13%		Task 2		12	5	42%		
+	total		8	1	13%		total		19	5	26%		
+
+------------------------------
+CURRENTLY TESTING input-11.txt
+
+			FIFO						BANKER's
+	Task 1		17	8	47%		Task 1		19	10	53%		
+	Task 2		11	2	18%		Task 2		11	2	18%		
+	Task 3		13	6	46%		Task 3		15	8	53%		
+	total		41	16	39%		total		45	20	44%		
+
+------------------------------
+CURRENTLY TESTING input-12.txt
+
+			FIFO						BANKER's
+	Task 1		7	0	0%		Task 1		7	0	0%		
+	Task 2		6	0	0%		Task 2		9	3	33%		
+	total		13	0	0%		total		16	3	19%		
+
+------------------------------
+CURRENTLY TESTING input-13.txt
+
+			FIFO						BANKER's
+	Task 1		18	0	0%		Task 1		18	0	0%		
+	Task 2		18	0	0%		Task 2		25	7	28%		
+	total		36	0	0%		total		43	7	16%		
+
+------------------------------
