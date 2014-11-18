@@ -16,8 +16,7 @@ tasks = {}
 # Maps task IDs to waiting tasks (in order tasks were told to wait)
 waitingTasks = OrderedDict()
 # Tasks are placed here when they are freed from waiting
-# (makes sure tasks are only processed once per cycle)
-readyTasks = []
+readyTasks = [] # (makes sure tasks are only processed once per cycle)
 
 # Maps resource IDs to Resource objects
 resources = {}
@@ -257,6 +256,14 @@ def bankerProcessClaims(task, initInstruction):
     if( not rType in resources.keys()
         or rUnits > resources[rType].getTotUnits() ):
         task.abort()
+
+        # Print informative message
+        msg =   "Banker aborts task " + str(task.getID()) + \
+                " before run begins:\n"
+        msg +=  "\tclaim for resource " + str(rType) + " (" + str(rUnits) + \
+                ") exceeds number of units present (" + \
+                str(resources[rType].getTotUnits()) + ")"
+        print(msg)
     else:
         task.setClaims(rType, rUnits)
 
@@ -387,10 +394,10 @@ def assembleStats(tasks, manager):
     totWaiting = sum(ind['waiting'] for ind in stats.values())
 
     stats['total'] = copy.deepcopy(vals) # Separate entry for cumulative data
-    stats['taken'] = totTaken
-    stats['waiting'] = totWaiting
-    stats['percentWaiting'] = int(round(100.0 * \
-            stats['waiting'] / stats['taken']))
+    stats['total']['taken'] = totTaken
+    stats['total']['waiting'] = totWaiting
+    stats['total']['percentWaiting'] = int(round(100.0 * \
+            stats['total']['waiting'] / stats['total']['taken']))
 
     # Set manager type
     stats['meta'] = {}
@@ -405,7 +412,7 @@ def assembleStats(tasks, manager):
 def printReport(globalStats):
     report = "\n"
     report += "\t"*3 + "FIFO" + "\t"*6 + "BANKER's\n"
-    for i in range(1, len(globalStats[0].keys()) - len(globalStats)*2):
+    for i in range(1, len(globalStats[0].keys()) - 1):
         report += "\t" + "Task " + str(i)
 
         report += "\t"*2
@@ -435,34 +442,46 @@ def printReport(globalStats):
 
         report += "\n"
 
-
     report += "\t" + "total"
     report += "\t"*2
 
-    if( globalStats[1][i]['aborted'] ):
-        report += "aborted" + "\t"*4
-    else:
-        report += str(globalStats[1][i]['taken'])
-        report += "\t"
-        report += str(globalStats[1][i]['waiting'])
-        report += "\t"
-        report += str(globalStats[1][i]['percentWaiting']) + "%"
-        report += "\t"*2
+    report += str(globalStats[0]['total']['taken'])
+    report += "\t"
+    report += str(globalStats[0]['total']['waiting'])
+    report += "\t"
+    report += str(globalStats[0]['total']['percentWaiting']) + "%"
+
+    report += "\t"*2 + "total"
+    report += "\t"*2
+
+    report += str(globalStats[1]['total']['taken'])
+    report += "\t"
+    report += str(globalStats[1]['total']['waiting'])
+    report += "\t"
+    report += str(globalStats[1]['total']['percentWaiting']) + "%"
+    report += "\t"*2
 
     report += "\n"
-
-
     print(report)
 
 
 if __name__ == "__main__":
-    filePath = "inputs/input-07.txt"
-    file = file(filePath, 'r')
+    if len(sys.argv) == 2:
+        filePath = sys.argv[1]
+    else:
+        print("\nPlease restart the program and provide an input file.")
+        print("ex.:\n\tpython2.7 Manager.py input-02.txt\n")
+        exit(0)
+
+    try: file = file(filePath, 'r')
+    except IOError:
+        print("\nCan't find: '" + filePath + "'.\n"); exit(0)
+
 
     outline = [int(s) for s in file.readline().split()]
     instructions = re.findall(r'[a-z]+\s+[\d\s]+', file.read())
 
-    # Run for OPTIMISTIC and BANKER managers and assemble stats
+    # Run for OPTIMISTIC and BANKER managers, and assemble stats
     globalStats = []
 
     globalStats.append( simulateAlgorithm(ManagerType.OPTIMISTIC) )
