@@ -319,15 +319,24 @@ def run(manager):
         sysClock += 1
 
 
-def assembleStats(tasks):
+def simulateAlgorithm(manager):
+    parseInputData(outline, instructions)
+    run(manager)
+
+    return assembleStats(tasks, manager)
+
+
+def assembleStats(tasks, manager):
     '''
     Returns a dict mapping each task to a dict listing its statistics:
     time taken, waiting time, percentage of time spent waiting
     ex. (numerical keys denote task IDs aside from 'total')
+        meta
+            manager: "BANKER's"
         1
             taken: 9
             waiting: 4
-            percentWaiting: 0.44
+            percentWaiting: 44
             aborted: False
         2
             taken: 0
@@ -337,16 +346,15 @@ def assembleStats(tasks):
         3
             taken: 7
             waiting: 3
-            percentWaiting: 0.43
+            percentWaiting: 43
             aborted: False
         total
             taken: 16
             waiting: 7
-            percentWaiting: 0.44
+            percentWaiting: 44
             aborted: False
     '''
     vals = {"taken":0, "waiting":0, "percentWaiting":0, "aborted":False}
-
     stats = {task.getID():copy.deepcopy(vals) for task in tasks.values()}
 
     # Individual tasks
@@ -358,7 +366,8 @@ def assembleStats(tasks):
         currStats = tasks[taskID].getStats()
         stats[taskID]['taken'] = currStats['running']
         stats[taskID]['waiting'] = currStats['waiting']
-        stats[taskID]['percentWaiting'] = float(currStats['waiting'] / currStats['running'])
+        stats[taskID]['percentWaiting'] = int(round(100.0 * \
+            currStats['waiting'] / currStats['running']))
 
     # Totals
     totTaken = sum(ind['taken'] for ind in stats.values())
@@ -367,19 +376,39 @@ def assembleStats(tasks):
     stats['total'] = copy.deepcopy(vals) # Separate entry for cumulative data
     stats['taken'] = totTaken
     stats['waiting'] = totWaiting
-    stats['percentWaiting'] = float(stats['waiting'] / stats['taken'])
-    
+    stats['percentWaiting'] = int(round(100.0 * \
+            stats['waiting'] / stats['taken']))
+
+    # Set manager type
+    stats['meta'] = {}
+    if manager is ManagerType.OPTIMISTIC:
+        stats['meta']['manager'] = 'OPTIMISTIC'
+    elif manager is ManagerType.BANKER:
+        stats['meta']['manager'] = 'BANKER\'S'
+
     return stats
 
 
-def printReport():
-    for task in tasks.values():
-        if task.isAborted():
-            print("aborted -- no stats"); continue
+def printReport(globalStats):
+    report = "\n"
+    report += "\t"*4 + "FIFO" + "\t"*4 + "BANKER's\n"
+    for i in range(1, len(globalStats[0].keys()) - len(globalStats)*2):
+        report += "\t" + "Task " + str(i)
 
-        print("Task #" + str(task.getID()) + "\n")
-        print("\tRunning: " + str(task.getStats()['running']) + "\n")
-        print("\tWaiting: " + str(task.getStats()['waiting']) + "\n")
+        report += "\t"*2
+        if( globalStats[0][i]['aborted'] ):
+            report += "aborted"
+        else:
+            report += str(globalStats[0][i]['taken'])
+            report += "\t"
+            report += str(globalStats[0][i]['waiting'])
+            report += "\t"
+            report += str(globalStats[0][i]['percentWaiting']) + "%"
+
+
+        report += "\n"
+
+    print(report)
 
 
 if __name__ == "__main__":
@@ -389,9 +418,10 @@ if __name__ == "__main__":
     outline = [int(s) for s in file.readline().split()]
     instructions = re.findall(r'[a-z]+\s+[\d\s]+', file.read())
 
-    parseInputData(outline, instructions)
+    # Run for OPTIMISTIC and BANKER managers and assemble stats
+    globalStats = []
 
-    run(ManagerType.BANKER)
+    globalStats.append( simulateAlgorithm(ManagerType.OPTIMISTIC) )
+    globalStats.append( simulateAlgorithm(ManagerType.BANKER) )
 
-    assembleStats(tasks)
-    printReport()
+    printReport(globalStats)
