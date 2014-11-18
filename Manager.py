@@ -82,12 +82,19 @@ def isSafe(task, instruction): #task isnt needed here
             -   Else: pretend to grant all resources to it, terminate it and
                 continue to apply this method until all tasks are processed
     '''
-    if isFinished():
-        return True
-    if resources[instruction.getResourceType()].getNumAvailable() < instruction.getNumUnits():
-        print("not enough!\ttask asks for: " + str(instruction.getNumUnits()))
-        print("\t\tthere is just: " + str(resources[instruction.getResourceType()].getNumAvailable()))
+    if isFinished(): return True
+
+    # Abort task if it exceeds its claim
+    if instruction.getNumUnits() > task.getMaxAddl()[instruction.getResourceType()]:
+        if task.getID() in waitingTasks.keys():
+            del waitingTasks[task.getID()]
+
+        for rID in task.getAllResources().keys():
+            placeIntoFreeBuffer(rID, task.getAllResources()[rID])
+
+        task.abort()
         return False
+
 
     # Map resource ID to number of available units (copied structure)
     simResources = {rID:r.getNumAvailable() for rID, r in resources.iteritems()}
@@ -101,17 +108,7 @@ def isSafe(task, instruction): #task isnt needed here
     wResourceID = instruction.getResourceType()
     wUnits = instruction.getNumUnits()
     simResources[wResourceID] -= wUnits
-
-    #print("hello")
-    #print("held: " + str(simTasks[task.getID()].getAllResources()))
-    #print("max addl: " + str(simTasks[task.getID()].getMaxAddl()))
-
     simTasks[task.getID()].grantResource(wResourceID, wUnits)
-    #print("")
-
-    #print("held: " + str(simTasks[task.getID()].getAllResources()))
-    #print("max addl: " + str(simTasks[task.getID()].getMaxAddl()))
-    #print("bye")
 
     while simTasks: # There should be tasks available
         availTask = getFulfillableTask(simResources, simTasks)
@@ -132,14 +129,11 @@ def getFulfillableTask(maxResources, tasks):
     Returns a task whose max. additional request fits within the max. resources
     '''
     for task in tasks.values():
-        #print("held: " + str(tasks[task.getID()].getAllResources()))
-        #print("max addl: " + str(tasks[task.getID()].getMaxAddl()))
         resourceSet = task.getMaxAddl() # Maps resource ID to count of units
         isValid = True
 
         for rID in resourceSet.keys():
             if resourceSet[rID] > maxResources[rID]:
-                #print("asking for " + str(resourceSet[rID]) + " while there's only " + str(maxResources[rID]))
                 isValid = False; break
 
         if isValid:
@@ -218,35 +212,25 @@ def standardRequest(task, instruction):
 
         if task.getID() in waitingTasks: # Leave the waiting tasks
             del waitingTasks[task.getID()]
-            print("Task :" + str(task.getID()) + " left the waiting queue!")
 
         # The request can be fulfilled
         if( resource.takeUnits(instruction.getNumUnits()) ):
             task.grantResource(resource.getID(), instruction.getNumUnits())
-            print( "Task :" + str(task.getID()) + " fulfilled request")
 
     else:
-        print("Task :" + str(task.getID()) + " request cannot be granted!")
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
-            print("\tWent into the queue!")
 
 
 def bankerRequest(task, instruction):
     '''
     Wrapper around standardRequest() that proceeds only if the state is safe
     '''
-    print("c: " + str(sysClock))
     if isSafe(task, instruction):
         standardRequest(task, instruction)
 
     else:
-        print("\tNot safe! Task: " + str(task.getID()) + " was told to wait... was asking for these units: " + str(instruction.getNumUnits()))
-        print("\tinstruction: " + str(instruction.getCommand()))
-        print("\tbank: " + str(resources))
-        print("\n")
-
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
@@ -262,13 +246,11 @@ def bankerProcessClaims(task, initInstruction):
     if( not rType in resources.keys()
         or rUnits > resources[rType].getTotUnits() ):
         task.abort()
-        print("task aborted in the beginning... asked for too much")
     else:
         task.setClaims(rType, rUnits)
 
 
 def execute(manager, task, instruction):
-    #print("\t\tinstruction= " + str(instruction.getCommand()))
     if( instruction.getDelay() ):
         instruction.delay -= 1; return
 
@@ -290,8 +272,6 @@ def execute(manager, task, instruction):
         if( instruction.getNumUnits() <= resource.getNumBusy() ):
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
-            print("Task :" + str(task.getID()) + " fulfilled release (" + str(instruction.getNumUnits()) + " units)")
-
 
     # Carry on and determine stats
     if( not task.isWaiting() ):
@@ -329,8 +309,6 @@ def run(manager):
 
         cleanFreeBuffer()
         sysClock += 1
-
-
 
 
 def printReport():
