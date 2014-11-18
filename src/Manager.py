@@ -413,7 +413,7 @@ def assembleStats(tasks, manager):
 
 def printReport(globalStats):
     report = "\n"
-    report += "\t"*3 + "FIFO" + "\t"*6 + "BANKER's\n"
+    report += "\t"*3 + "FIFO" + "\t"*6 + "BANKER'S\n"
     for i in range(1, len(globalStats[0].keys()) - 1):
         report += "\t" + "Task " + str(i)
 
