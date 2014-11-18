@@ -16,6 +16,8 @@ class Task:
         self.heldResources = {}
 
         # Stats to measure runtime
+        # ('running' is the time from initialization to end and 'waiting' is
+        # time spent on the blocked list)
         self.stats = {'running':0, 'waiting':0}
 
 
@@ -126,5 +128,4 @@ class Task:
         info = "Task #" + str(self.getID()) + ": \n"
         info += "\tisActive(): " + str(self.isActive()) + "\n"
         info += "\tisWaiting(): " + str(self.isWaiting()) + "\n"
-        info += str(self.heldResources)
         return info

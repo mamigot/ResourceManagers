@@ -71,7 +71,7 @@ def isDeadlocked():
     return not isFinished() # If it's finished, it's not deadlocked
 
 
-def isSafe(task, instruction): #task isnt needed here
+def isSafe(task, instruction):
     '''
     Determines if a given task + instruction leads to a safe state.
 
@@ -93,6 +93,14 @@ def isSafe(task, instruction): #task isnt needed here
             placeIntoFreeBuffer(rID, task.getAllResources()[rID])
 
         task.abort()
+
+        # Print informative message
+        msg =   "During cycle " + str(sysClock) + "-" + str(sysClock+1)
+        msg +=  " of Banker's algorithm\n"
+        msg +=  "\tTask " + str(task.getID())
+        msg +=  "'s request exceeds its claim; aborted; "
+        msg +=  str(instruction.getNumUnits()) + " units available next cycle"
+        print(msg)
         return False
 
 
@@ -311,6 +319,59 @@ def run(manager):
         sysClock += 1
 
 
+def assembleStats(tasks):
+    '''
+    Returns a dict mapping each task to a dict listing its statistics:
+    time taken, waiting time, percentage of time spent waiting
+    ex. (numerical keys denote task IDs aside from 'total')
+        1
+            taken: 9
+            waiting: 4
+            percentWaiting: 0.44
+            aborted: False
+        2
+            taken: 0
+            waiting: 0
+            percentWaiting: 0
+            aborted: True
+        3
+            taken: 7
+            waiting: 3
+            percentWaiting: 0.43
+            aborted: False
+        total
+            taken: 16
+            waiting: 7
+            percentWaiting: 0.44
+            aborted: False
+    '''
+    vals = {"taken":0, "waiting":0, "percentWaiting":0, "aborted":False}
+
+    stats = {task.getID():copy.deepcopy(vals) for task in tasks.values()}
+
+    # Individual tasks
+    for taskID in stats.keys():
+        if tasks[taskID].isAborted():
+            stats[taskID]['aborted'] = True
+            continue
+
+        currStats = tasks[taskID].getStats()
+        stats[taskID]['taken'] = currStats['running']
+        stats[taskID]['waiting'] = currStats['waiting']
+        stats[taskID]['percentWaiting'] = float(currStats['waiting'] / currStats['running'])
+
+    # Totals
+    totTaken = sum(ind['taken'] for ind in stats.values())
+    totWaiting = sum(ind['waiting'] for ind in stats.values())
+
+    stats['total'] = copy.deepcopy(vals) # Separate entry for cumulative data
+    stats['taken'] = totTaken
+    stats['waiting'] = totWaiting
+    stats['percentWaiting'] = float(stats['waiting'] / stats['taken'])
+    
+    return stats
+
+
 def printReport():
     for task in tasks.values():
         if task.isAborted():
@@ -322,7 +383,7 @@ def printReport():
 
 
 if __name__ == "__main__":
-    filePath = "inputs/input-07.txt" # 07 doesn't work
+    filePath = "inputs/input-07.txt"
     file = file(filePath, 'r')
 
     outline = [int(s) for s in file.readline().split()]
@@ -332,4 +393,5 @@ if __name__ == "__main__":
 
     run(ManagerType.BANKER)
 
+    assembleStats(tasks)
     printReport()
