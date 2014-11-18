@@ -8,6 +8,9 @@ from Resource import Resource
 from Instruction import Instruction
 
 
+# Read from input file
+outline = []; instructions = []
+
 # Maps all task IDs to all Task objects
 tasks = {}
 # Maps task IDs to waiting tasks (in order tasks were told to wait)
@@ -320,6 +323,16 @@ def run(manager):
 
 
 def simulateAlgorithm(manager):
+    # Reset data structures
+    global tasks, waitingTasks, readyTasks
+    tasks = {}; waitingTasks = OrderedDict(); readyTasks = []
+
+    global resources, freeBuffer
+    resources = {}; freeBuffer = {}
+
+    global sysClock
+    sysClock = 0
+
     parseInputData(outline, instructions)
     run(manager)
 
@@ -391,22 +404,53 @@ def assembleStats(tasks, manager):
 
 def printReport(globalStats):
     report = "\n"
-    report += "\t"*4 + "FIFO" + "\t"*4 + "BANKER's\n"
+    report += "\t"*3 + "FIFO" + "\t"*6 + "BANKER's\n"
     for i in range(1, len(globalStats[0].keys()) - len(globalStats)*2):
         report += "\t" + "Task " + str(i)
 
         report += "\t"*2
         if( globalStats[0][i]['aborted'] ):
-            report += "aborted"
+            report += "aborted" + "\t"*4
         else:
             report += str(globalStats[0][i]['taken'])
             report += "\t"
             report += str(globalStats[0][i]['waiting'])
             report += "\t"
             report += str(globalStats[0][i]['percentWaiting']) + "%"
+            report += "\t"*2
 
+
+        report += "Task " + str(i)
+        report += "\t"*2
+
+        if( globalStats[1][i]['aborted'] ):
+            report += "aborted" + "\t"*4
+        else:
+            report += str(globalStats[1][i]['taken'])
+            report += "\t"
+            report += str(globalStats[1][i]['waiting'])
+            report += "\t"
+            report += str(globalStats[1][i]['percentWaiting']) + "%"
+            report += "\t"*2
 
         report += "\n"
+
+
+    report += "\t" + "total"
+    report += "\t"*2
+
+    if( globalStats[1][i]['aborted'] ):
+        report += "aborted" + "\t"*4
+    else:
+        report += str(globalStats[1][i]['taken'])
+        report += "\t"
+        report += str(globalStats[1][i]['waiting'])
+        report += "\t"
+        report += str(globalStats[1][i]['percentWaiting']) + "%"
+        report += "\t"*2
+
+    report += "\n"
+
 
     print(report)
 
