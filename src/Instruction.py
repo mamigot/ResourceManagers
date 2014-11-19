@@ -1,26 +1,43 @@
 class Instruction:
+    '''
+    Gathers all data pertaining to instructions and makes it available through
+    a number of getters. Note that an instruction is characterized by
+    the variables in its constructor.
+    '''
 
     def __init__(self, command, taskID, delay, resourceType, numUnits):
-        self.command = command
-        self.taskID = taskID
-        self.delay = delay
-        self.resourceType = resourceType
-        self.numUnits = numUnits
+        self.command = command # Initiate, request, release or terminate
+        self.taskID = taskID # Task the instruction affects
+        self.delay = delay # Determines when the instruction wants to "be run"
+        self.resourceType = resourceType # Resource the instruction affects
+        self.numUnits = numUnits # Number of units in given resource it affects
 
     def getCommand(self):
+        '''
+        Gets the instruction's command
+        '''
         return self.command
 
     def getTaskID(self):
+        '''
+        Gets the relevant task ID
+        '''
         return self.taskID
 
     def getDelay(self):
+        '''
+        Gets the instruction's delay
+        '''
         return self.delay
 
     def getResourceType(self):
+        '''
+        Gets the relevant resource type
+        '''
         return self.resourceType
 
     def getNumUnits(self):
+        '''
+        Gets the relevant number of units
+        '''
         return self.numUnits
-
-    def __repr__(self):
-        return str(self.__dict__)

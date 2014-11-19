@@ -10,7 +10,7 @@ from Resource import Resource
 from Instruction import Instruction
 
 
-# Read from input file
+# Read from input file (useful when parsing data)
 outline = []; instructions = []
 
 # Maps all task IDs to all Task objects
@@ -18,24 +18,30 @@ tasks = {}
 # Maps task IDs to waiting tasks (in order tasks were told to wait)
 waitingTasks = OrderedDict()
 # Tasks are placed here when they are freed from waiting
-readyTasks = [] # (makes sure tasks are only processed once per cycle)
+# (makes sure tasks are only processed once per cycle)
+readyTasks = []
 
 # Maps resource IDs to Resource objects
 resources = {}
-# Maps resource IDs to number of units that will be freed
+# Maps resource IDs to number of units that will be freed.
+# (freed units are placed here until the ends of the cycles)
 freeBuffer = {}
 
+# Reset for each run
 sysClock = 0;
 
 class ManagerType:
     '''
-    Mimic enums
+    Mimic enums for required resource management algorithms
     '''
     OPTIMISTIC = 1
     BANKER = 2
 
 
 def parseInputData(outline, instructions):
+    '''
+    Reads data from input file and builds the 'resources' and 'tasks' structures
+    '''
     global tasks, resources # Modify the global variables
     tasks = {x:Task(x) for x in range(1, outline[0] + 1)}
 
@@ -57,6 +63,9 @@ def parseInputData(outline, instructions):
 
 
 def isFinished():
+    '''
+    True if there are no more active tasks in the process, false otherwise
+    '''
     for task in tasks.values():
         if( task.isActive() ):
             return False
@@ -66,7 +75,8 @@ def isFinished():
 
 def isDeadlocked():
     '''
-    Deadlock if all active tasks are waiting
+    True if all active tasks are waiting, false otherwise
+    (relevant to the optimistic algorithm)
     '''
     for task in tasks.values():
         if( task.isActive() and not task.isWaiting() ):
@@ -77,7 +87,8 @@ def isDeadlocked():
 
 def isSafe(task, instruction):
     '''
-    Determines if a given task + instruction leads to a safe state.
+    Determines if a given task + instruction leads to a safe state and returns
+    true if so, false otherwise.
 
     Dijkstra's algorithm to determine if a state is safe:
         1. State is safe if no tasks are left
@@ -138,7 +149,8 @@ def isSafe(task, instruction):
 
 def getFulfillableTask(maxResources, tasks):
     '''
-    Returns a task whose max. additional request fits within the max. resources
+    Returns any task whose max. additional requests fit within the set of
+    currently available resources
     '''
     for task in tasks.values():
         resourceSet = task.getMaxAddl() # Maps resource ID to count of units
@@ -156,7 +168,7 @@ def getFulfillableTask(maxResources, tasks):
 
 def getLowestDeadlockedTask():
     '''
-    Has to be active, obviously
+    Returns the lowest (in terms of task ID) active task in the blocked list
     '''
     for task in tasks.values():
         if( task.isWaiting() and task.isActive() ):
@@ -167,8 +179,9 @@ def getLowestDeadlockedTask():
 
 def resolveDeadlock():
     '''
-    Abort the lowest numbered deadlocked task (+ free its resources)
-    (repeat this process while there's deadlock)
+    Abort the lowest numbered deadlocked task (in terms of task ID) and free
+    its resources). Repeat this process while there's deadlock.
+    (Relevant to the optimistic algorithm).
     '''
     while( isDeadlocked() ):
         task = getLowestDeadlockedTask()
@@ -193,6 +206,10 @@ def resolveDeadlock():
 
 
 def placeIntoFreeBuffer(resourceID, numUnits):
+    '''
+    Inserts mappings of resource IDs to corresponding units into a "buffer"
+    that's emptied once per cycle
+    '''
     global freeBuffer
 
     if( resourceID in freeBuffer.keys() ):
@@ -202,6 +219,10 @@ def placeIntoFreeBuffer(resourceID, numUnits):
 
 
 def cleanFreeBuffer():
+    '''
+    Places the units corresponding to given resource IDs in the "buffer" into
+    the global structure of resources
+    '''
     global freeBuffer
 
     for rID in freeBuffer.keys():
@@ -212,13 +233,15 @@ def cleanFreeBuffer():
 def standardRequest(task, instruction):
     '''
     Fulfills the request if there are available resources
+    (called by all resource managing algorithms)
     '''
-    if( instruction.getDelay() ):
+    if( instruction.getDelay() ): # Nothing to do for now
         instruction.delay -= 1; return
 
     resource = resources[instruction.getResourceType()]
 
     if( instruction.getNumUnits() <= resource.getNumAvailable() ):
+        # Units can be granted!
         task.stopWaiting() # Freed from waiting when request can be satisfied
         readyTasks.append(task) # Note that tasks were "readified" on this cycle
 
@@ -230,6 +253,7 @@ def standardRequest(task, instruction):
             task.grantResource(resource.getID(), instruction.getNumUnits())
 
     else:
+        # Units can't be granted
         task.wait() # Wait until resources become available
         if not task.getID() in waitingTasks: # Enter the waiting tasks
             waitingTasks[task.getID()] = task
@@ -251,11 +275,13 @@ def bankerRequest(task, instruction):
 def bankerProcessClaims(task, initInstruction):
     '''
     Aborts task if it's asking for unknown resources or way too many units
+    (analyzes the claims)
     '''
     rType = initInstruction.getResourceType()
     rUnits = initInstruction.getNumUnits()
 
     if( not rType in resources.keys()
+        # Task is not getting accepted
         or rUnits > resources[rType].getTotUnits() ):
         task.abort()
 
@@ -266,16 +292,20 @@ def bankerProcessClaims(task, initInstruction):
                 ") exceeds number of units present (" + \
                 str(resources[rType].getTotUnits()) + ")"
         print(msg)
-    else:
+
+    else: # We're in!
         task.setClaims(rType, rUnits)
 
 
 def execute(manager, task, instruction):
-    if( instruction.getDelay() ):
+    '''
+    Dispatcher for each type of request that a task can make
+    '''
+    if( instruction.getDelay() ): # Nothing to do for now
         instruction.delay -= 1; return
 
     if( instruction.getCommand() == "initiate" and
-        manager is ManagerType.BANKER ):
+        manager is ManagerType.BANKER ): # Only the Banker cares about claims
         bankerProcessClaims(task, instruction)
 
     if( instruction.getCommand() == "request" ):
@@ -293,8 +323,7 @@ def execute(manager, task, instruction):
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
 
-    # Carry on and determine stats
-    if( not task.isWaiting() ):
+    if( not task.isWaiting() ): # Carry on and calculate stats
         task.incInstruction()
         if task.isFinished():
             task.clockEndTime(sysClock)
@@ -303,6 +332,12 @@ def execute(manager, task, instruction):
 
 
 def run(manager):
+    '''
+    Proceeds while there are still active tasks, and follows this order:
+    1. Process blocked tasks in the order they were told to wait
+    2. Process non-blocked tasks
+    3. Check if there's deadlock (applies to optimistic manager)
+    '''
     global sysClock
 
     while not isFinished():
@@ -327,11 +362,17 @@ def run(manager):
         if( manager is ManagerType.OPTIMISTIC and isDeadlocked() ):
             resolveDeadlock()
 
+        # Freed units didn't go into 'resources', but in this buffer to make
+        # sure that tasks don't use them more than one/cycle
         cleanFreeBuffer()
         sysClock += 1
 
 
 def simulateAlgorithm(manager):
+    '''
+    Wrapper around run(manager) that resets global data structures before
+    initializing the execution of a given resource manager
+    '''
     # Reset data structures
     global tasks, waitingTasks, readyTasks
     tasks = {}; waitingTasks = OrderedDict(); readyTasks = []
@@ -412,6 +453,10 @@ def assembleStats(tasks, manager):
 
 
 def printReport(globalStats):
+    '''
+    Prints each task's set of stats according to the format specified by the
+    assignment
+    '''
     report = "\n"
     report += "\t"*3 + "FIFO" + "\t"*6 + "BANKER'S\n"
     for i in range(1, len(globalStats[0].keys()) - 1):
@@ -468,6 +513,14 @@ def printReport(globalStats):
 
 
 if __name__ == "__main__":
+    '''
+    Reads data outlining available resources as well as tasks' instructions
+    and executes the optimistic and Banker's resource managing algorithms.
+    Prints stats pertaining to the runtime of each algorithm at the end using
+    the format specified by printReport(globalStats).
+    '''
+
+    # Read given file from the command line
     if len(sys.argv) == 2:
         filePath = sys.argv[1]
     else:
@@ -476,10 +529,9 @@ if __name__ == "__main__":
         exit(0)
 
     try: file = file(filePath, 'r')
-    except IOError:
-        print("\nCan't find: '" + filePath + "'.\n"); exit(0)
+    except IOError: print("\nCan't find: '" + filePath + "'.\n"); exit(0)
 
-
+    # Read data from input file
     outline = [int(s) for s in file.readline().split()]
     instructions = re.findall(r'[a-z]+\s+[\d\s]+', file.read())
 
