@@ -9,7 +9,7 @@ Implementation of the optimistic and Banker's algorithms for resource management
 
 Statistics are ultimately calculated and printed to the console (see [testResults.txt](testResults.txt) for the result of the provided inputs). The format of the output for each resource management algorithm is the following:
 
-                          Resource Management Algorithm
+                            Resource Management Algorithm
      Task 1      takenTime          waitingTime          percentWaiting
      ...
      total       totalTakenTime     totalWaitingTime     totalPercentWaiting
