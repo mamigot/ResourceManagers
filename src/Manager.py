@@ -10,9 +10,6 @@ from Resource import Resource
 from Instruction import Instruction
 
 
-# Read from input file (useful when parsing data)
-outline = []; instructions = []
-
 # Maps all task IDs to all Task objects
 tasks = {}
 # Maps task IDs to waiting tasks (in order tasks were told to wait)
@@ -323,12 +320,13 @@ def execute(manager, task, instruction):
             placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
             task.releaseResource(resource.getID(), instruction.getNumUnits())
 
-    if( not task.isWaiting() ): # Carry on and calculate stats
+
+    if task.isWaiting(): # Carry on and calculate stats
+        task.incWaitingTime()
+    else:
         task.incInstruction()
         if task.isFinished():
             task.clockEndTime(sysClock)
-    else:
-        task.incWaitingTime()
 
 
 def run(manager):
@@ -338,11 +336,9 @@ def run(manager):
     2. Process non-blocked tasks
     3. Check if there's deadlock (applies to optimistic manager)
     '''
-    global sysClock
+    global sysClock, readyTasks
 
     while not isFinished():
-        global readyTasks
-
         # Process blocked tasks in the order they were told to wait
         for task in waitingTasks.values():
             if task.isActive(): # Should be all
@@ -532,6 +528,7 @@ if __name__ == "__main__":
     except IOError: print("\nCan't find: '" + filePath + "'.\n"); exit(0)
 
     # Read data from input file
+    global outline, instructions
     outline = [int(s) for s in file.readline().split()]
     instructions = re.findall(r'[a-z]+\s+[\d\s]+', file.read())
 
