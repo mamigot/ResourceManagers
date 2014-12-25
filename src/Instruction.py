@@ -12,31 +12,36 @@ class Instruction:
         self.resourceType = resourceType # Resource the instruction affects
         self.numUnits = numUnits # Number of units in given resource it affects
 
-    def getCommand(self):
+    @property
+    def command(self):
         '''
         Gets the instruction's command
         '''
         return self.command
 
-    def getTaskID(self):
+    @property
+    def taskID(self):
         '''
         Gets the relevant task ID
         '''
         return self.taskID
 
-    def getDelay(self):
+    @property
+    def delay(self):
         '''
         Gets the instruction's delay
         '''
         return self.delay
 
-    def getResourceType(self):
+    @property
+    def resourceType(self):
         '''
         Gets the relevant resource type
         '''
         return self.resourceType
 
-    def getNumUnits(self):
+    @property
+    def numUnits(self):
         '''
         Gets the relevant number of units
         '''

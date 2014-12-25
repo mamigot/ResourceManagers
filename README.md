@@ -23,8 +23,3 @@ In order to test the program for all given inputs, run the [tester.sh](tester.sh
 ```
 sh tester.sh
 ```
-
-
-#### To-Do
-Replace useless getters and setters with @property
-http://blaag.haard.se/What-s-the-point-of-properties-in-Python/

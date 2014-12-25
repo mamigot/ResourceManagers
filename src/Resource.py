@@ -7,10 +7,38 @@ class Resource:
 
     def __init__(self, id, totUnits):
         self.id = id # Uniquely identifies it
-        self.totUnits = totUnits # Total units the resource has
+        self.numTotUnits = totUnits # Total units the resource has
 
-        self.availableUnits = totUnits # Available units within the resource
-        self.busyUnits = 0 # Non-available units within the resource
+        self.numAvailableUnits = totUnits # Available units within the resource
+        self.numBusyUnits = 0 # Non-available units within the resource
+
+    @property
+    def id(self):
+        '''
+        Gets the resource's ID
+        '''
+        return self.id
+
+    @property
+    def numTotUnits(self):
+        '''
+        Gets the resources's total number of units
+        '''
+        return self.numTotUnits
+
+    @property
+    def numAvailableUnits(self):
+        '''
+        Gets the resource's total number of available units
+        '''
+        return self.numAvailableUnits
+
+    @property
+    def numBusyUnits(self):
+        '''
+        Gets the resource's total number of busy units
+        '''
+        return self.numBusyUnits
 
 
     def takeUnits(self, numUnits=1):
@@ -18,9 +46,9 @@ class Resource:
         Decrements the resource's count of available units (which increases
         its number of busy units)
         '''
-        if( numUnits <= self.availableUnits ):
-            self.availableUnits -= numUnits
-            self.busyUnits += numUnits
+        if( numUnits <= self.numAvailableUnits ):
+            self.numAvailableUnits -= numUnits
+            self.numBusyUnits += numUnits
             return True
 
         else:
@@ -31,35 +59,10 @@ class Resource:
         Decrements the resource's count of busy units (which increases
         its number of available units)
         '''
-        if( self.availableUnits + numUnits <= self.totUnits ):
-            self.availableUnits += numUnits
-            self.busyUnits -= numUnits
+        if( self.numAvailableUnits + numUnits <= self.numTotUnits ):
+            self.numAvailableUnits += numUnits
+            self.numBusyUnits -= numUnits
             return True
 
         else:
             return False
-
-
-    def getID(self):
-        '''
-        Gets the resource's ID
-        '''
-        return self.id
-
-    def getTotUnits(self):
-        '''
-        Gets the resources's total number of units
-        '''
-        return self.totUnits
-
-    def getNumAvailable(self):
-        '''
-        Gets the resource's total number of available units
-        '''
-        return self.availableUnits
-
-    def getNumBusy(self):
-        '''
-        Gets the resource's total number of busy units
-        '''
-        return self.busyUnits

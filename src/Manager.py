@@ -97,27 +97,27 @@ def isSafe(task, instruction):
     if isFinished(): return True
 
     # Abort task if it exceeds its claim
-    if instruction.getNumUnits() > task.getMaxAddl()[instruction.getResourceType()]:
-        if task.getID() in waitingTasks.keys():
-            del waitingTasks[task.getID()]
+    if instruction.numUnits > task.getMaxAddl()[instruction.resourceType]:
+        if task.id in waitingTasks.keys():
+            del waitingTasks[task.id]
 
-        for rID in task.getAllResources().keys():
-            placeIntoFreeBuffer(rID, task.getAllResources()[rID])
+        for rID in task.heldResources.keys():
+            placeIntoFreeBuffer(rID, task.heldResources[rID])
 
         task.abort()
 
         # Print informative message
         msg =   "During cycle " + str(sysClock) + "-" + str(sysClock+1)
         msg +=  " of Banker's algorithm\n"
-        msg +=  "\tTask " + str(task.getID())
+        msg +=  "\tTask " + str(task.id)
         msg +=  "'s request exceeds its claim; aborted; "
-        msg +=  str(instruction.getNumUnits()) + " units available next cycle"
+        msg +=  str(instruction.numUnits) + " units available next cycle"
         print(msg)
         return False
 
 
     # Map resource ID to number of available units (copied structure)
-    simResources = {rID:r.getNumAvailable() for rID, r in resources.iteritems()}
+    simResources = {rID:r.numAvailableUnits for rID, r in resources.iteritems()}
     # Map task ID to task object
     simTasks = {}
     for tID, t in tasks.iteritems():
@@ -125,18 +125,18 @@ def isSafe(task, instruction):
             simTasks[tID] = copy.deepcopy(t) # Copies full object
 
     # Pretend to grant the request
-    wResourceID = instruction.getResourceType()
-    wUnits = instruction.getNumUnits()
+    wResourceID = instruction.resourceType
+    wUnits = instruction.numUnits
     simResources[wResourceID] -= wUnits
-    simTasks[task.getID()].grantResource(wResourceID, wUnits)
+    simTasks[task.id].grantResource(wResourceID, wUnits)
 
     while simTasks: # There should be tasks available
         availTask = getFulfillableTask(simResources, simTasks)
 
         if availTask: # Free its resources and delete it
-            for rID, units in availTask.getAllResources().items():
+            for rID, units in availTask.heldResources.items():
                 simResources[rID] += units
-            del simTasks[availTask.getID()]
+            del simTasks[availTask.id]
         else:
             return False
 
@@ -184,11 +184,11 @@ def resolveDeadlock():
         task = getLowestDeadlockedTask()
         if not task: return
 
-        heldResources = task.getAllResources()
+        heldResources = task.heldResources
         for rID in heldResources.keys():
             placeIntoFreeBuffer(rID, heldResources[rID])
 
-        del waitingTasks[task.getID()]
+        del waitingTasks[task.id]
         task.abort()
 
         cleanFreeBuffer()
@@ -196,7 +196,7 @@ def resolveDeadlock():
         for task in tasks.values():
             if task.isActive():
                 ins = task.getCurrentInstruction()
-                if(ins.getCommand() == "request"):
+                if(ins.command == "request"):
                     standardRequest(task, ins)
                     if( not task.isWaiting() ):
                         task.incInstruction()
@@ -232,28 +232,28 @@ def standardRequest(task, instruction):
     Fulfills the request if there are available resources
     (called by all resource managing algorithms)
     '''
-    if( instruction.getDelay() ): # Nothing to do for now
+    if( instruction.delay ): # Nothing to do for now
         instruction.delay -= 1; return
 
-    resource = resources[instruction.getResourceType()]
+    resource = resources[instruction.resourceType]
 
-    if( instruction.getNumUnits() <= resource.getNumAvailable() ):
+    if( instruction.numUnits <= resource.numAvailableUnits ):
         # Units can be granted!
         task.stopWaiting() # Freed from waiting when request can be satisfied
         readyTasks.append(task) # Note that tasks were "readified" on this cycle
 
-        if task.getID() in waitingTasks: # Leave the waiting tasks
-            del waitingTasks[task.getID()]
+        if task.id in waitingTasks: # Leave the waiting tasks
+            del waitingTasks[task.id]
 
         # The request can be fulfilled
-        if( resource.takeUnits(instruction.getNumUnits()) ):
-            task.grantResource(resource.getID(), instruction.getNumUnits())
+        if( resource.takeUnits(instruction.numUnits) ):
+            task.grantResource(resource.id, instruction.numUnits)
 
     else:
         # Units can't be granted
         task.wait() # Wait until resources become available
-        if not task.getID() in waitingTasks: # Enter the waiting tasks
-            waitingTasks[task.getID()] = task
+        if not task.id in waitingTasks: # Enter the waiting tasks
+            waitingTasks[task.id] = task
 
 
 def bankerRequest(task, instruction):
@@ -265,8 +265,8 @@ def bankerRequest(task, instruction):
 
     else:
         task.wait() # Wait until resources become available
-        if not task.getID() in waitingTasks: # Enter the waiting tasks
-            waitingTasks[task.getID()] = task
+        if not task.id in waitingTasks: # Enter the waiting tasks
+            waitingTasks[task.id] = task
 
 
 def bankerProcessClaims(task, initInstruction):
@@ -274,20 +274,20 @@ def bankerProcessClaims(task, initInstruction):
     Aborts task if it's asking for unknown resources or way too many units
     (analyzes the claims)
     '''
-    rType = initInstruction.getResourceType()
-    rUnits = initInstruction.getNumUnits()
+    rType = initInstruction.resourceType
+    rUnits = initInstruction.numUnits
 
     if( not rType in resources.keys()
         # Task is not getting accepted
-        or rUnits > resources[rType].getTotUnits() ):
+        or rUnits > resources[rType].numTotUnits ):
         task.abort()
 
         # Print informative message
-        msg =   "Banker aborts task " + str(task.getID()) + \
+        msg =   "Banker aborts task " + str(task.id) + \
                 " before run begins:\n"
         msg +=  "\tclaim for resource " + str(rType) + " (" + str(rUnits) + \
                 ") exceeds number of units present (" + \
-                str(resources[rType].getTotUnits()) + ")"
+                str(resources[rType].numTotUnits) + ")"
         print(msg)
 
     else: # We're in!
@@ -298,14 +298,14 @@ def execute(manager, task, instruction):
     '''
     Dispatcher for each type of request that a task can make
     '''
-    if( instruction.getDelay() ): # Nothing to do for now
+    if( instruction.delay ): # Nothing to do for now
         instruction.delay -= 1; return
 
-    if( instruction.getCommand() == "initiate" and
+    if( instruction.command == "initiate" and
         manager is ManagerType.BANKER ): # Only the Banker cares about claims
         bankerProcessClaims(task, instruction)
 
-    if( instruction.getCommand() == "request" ):
+    if( instruction.command == "request" ):
         if( manager is ManagerType.OPTIMISTIC ):
             standardRequest(task, instruction)
 
@@ -313,12 +313,12 @@ def execute(manager, task, instruction):
             bankerRequest(task, instruction)
 
 
-    elif( instruction.getCommand() == "release" ):
-        resource = resources[instruction.getResourceType()]
+    elif( instruction.command == "release" ):
+        resource = resources[instruction.resourceType]
         # Fulfill the release (place items into freeBuffer)
-        if( instruction.getNumUnits() <= resource.getNumBusy() ):
-            placeIntoFreeBuffer(resource.getID(), instruction.getNumUnits())
-            task.releaseResource(resource.getID(), instruction.getNumUnits())
+        if( instruction.numUnits <= resource.numBusyUnits ):
+            placeIntoFreeBuffer(resource.id, instruction.numUnits)
+            task.releaseResource(resource.id, instruction.numUnits)
 
 
     if task.isWaiting(): # Carry on and calculate stats
@@ -414,7 +414,7 @@ def assembleStats(tasks, manager):
             aborted: False
     '''
     vals = {"taken":0, "waiting":0, "percentWaiting":0, "aborted":False}
-    stats = {task.getID():copy.deepcopy(vals) for task in tasks.values()}
+    stats = {task.id:copy.deepcopy(vals) for task in tasks.values()}
 
     # Individual tasks
     for taskID in stats.keys():
@@ -422,7 +422,7 @@ def assembleStats(tasks, manager):
             stats[taskID]['aborted'] = True
             continue
 
-        currStats = tasks[taskID].getStats()
+        currStats = tasks[taskID].stats
         stats[taskID]['taken'] = currStats['running']
         stats[taskID]['waiting'] = currStats['waiting']
         stats[taskID]['percentWaiting'] = int(round(100.0 * \

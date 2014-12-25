@@ -28,6 +28,47 @@ class Task:
         self.stats = {'running':0, 'waiting':0}
 
 
+    @property
+    def id(self):
+        '''
+        Gets the task's ID
+        '''
+        return self.id
+
+    @property
+    def claims(self):
+        '''
+        Gets the tasks's claims
+        '''
+        return self.claims;
+
+    @property
+    def heldResources(self):
+        '''
+        Gets all of the task's resources
+        '''
+        return self.heldResources
+
+    @property
+    def stats(self):
+        '''
+        Gets the task's stats (useful if the waiting time has been
+        increased accordingly and that the end time was properly set)
+        '''
+        return self.stats
+
+    def getCurrentInstruction(self):
+        '''
+        Uses the "current instruction pointer" to output the next
+        relevant instruction in the task's list of instructions
+        '''
+        if( not self.isActive() or
+            self.currInstruction >= len(self.instructions) ):
+            return None
+
+        return self.instructions[self.currInstruction]
+
+
     def isActive(self):
         '''
         Determines if the task is still relevant to the execution
@@ -152,49 +193,6 @@ class Task:
         Empty the task's heldResources variable
         '''
         self.heldResources = {}
-
-
-    def getID(self):
-        '''
-        Gets the task's ID
-        '''
-        return self.id
-
-    def getClaims(self):
-        '''
-        Gets the tasks's claims
-        '''
-        return self.claims;
-
-    def getAllInstructions(self):
-        '''
-        Gets the task's instructions
-        '''
-        return self.instructions
-
-    def getCurrentInstruction(self):
-        '''
-        Uses the "current instruction pointer" to output the next
-        relevant instruction in the task's list of instructions
-        '''
-        if( not self.isActive() or
-            self.currInstruction >= len(self.instructions) ):
-            return None
-
-        return self.instructions[self.currInstruction]
-
-    def getAllResources(self):
-        '''
-        Gets all of the task's resources
-        '''
-        return self.heldResources
-
-    def getStats(self):
-        '''
-        Gets the task's stats (useful if the waiting time has been
-        increased accordingly and that the end time was properly set)
-        '''
-        return self.stats
 
 
     def __repr__(self):
